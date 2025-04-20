@@ -6,6 +6,7 @@ import Board
 data Ghost = 
   Ghost {
     location :: Point,
+    path :: (Destination, [Track]),
     currDirection :: Direction, 
     nextDirection :: Direction, 
     velocity :: Point

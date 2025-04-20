@@ -6,6 +6,7 @@ import Board
 data Player = 
   Player {
     location :: Point,
+    path :: (Destination, [Track]),
     currDirection :: Direction, 
     nextDirection :: Direction, 
     velocity :: Point
@@ -14,4 +15,4 @@ data Player =
 
 
 genPlayer :: Player 
-genPlayer = Player playerStartPoint NONE NONE (0, 0)
+genPlayer = Player playerStartPoint (None, []) NONE NONE (0, 0)

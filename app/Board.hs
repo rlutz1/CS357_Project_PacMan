@@ -37,6 +37,8 @@ data Pivot = Pivot Point (Neighbor, Neighbor, Neighbor, Neighbor)
 data Neighbor = Null | Neighbor Destination [Track]
   deriving (Eq, Show) 
 
+data Destination = None | Destination Point
+  deriving (Eq, Show) 
 -- data Track = Track Point 
 --   deriving (Eq, Show) 
 
@@ -53,7 +55,6 @@ type Bottom = Float -- for ease of reading lol
 type Top = Float
 type Left = Float
 type Right = Float
-type Destination = Point
 type Track = Point
 
 data Direction = UP | DOWN | LEFT | RIGHT | NONE
@@ -94,8 +95,36 @@ handlers for the underlying movement mechanic, known as tracks.
 ------------------------------------------------------------
 -}
 
+-- up down left right
+-- data Pivot = Pivot Point (Neighbor, Neighbor, Neighbor, Neighbor)
+-- data Neighbor = Null | Neighbor Destination [Track]
+
 genPivots :: [Point] -> [Pivot]
-genPivots walls = [] -- todo
+genPivots walls = [ Pivot p (getNeighbor UP p walls, getNeighbor DOWN p walls, getNeighbor LEFT p walls, getNeighbor RIGHT p walls) | p <- genCenters, not (elem p walls)]
+
+genCenters :: [Point]
+genCenters = [ (x, y) | x <- [-475, -425..475], y <- [-475, -425..225] ]
+
+getNeighbor :: Direction -> Point -> [Point] -> Neighbor
+getNeighbor dir (x, y) walls 
+  | dir == UP = if outOfBounds (x, y + 50) || elem (x, y + 50) walls then Null else Neighbor (Destination (x, y + 50)) (genTracks UP (x, y) (x, y + 50))
+  | dir == DOWN = if outOfBounds (x, y - 50) || elem (x, y - 50) walls then Null else Neighbor (Destination (x, y - 50)) (genTracks DOWN (x, y) (x, y - 50))
+  | dir == LEFT = if outOfBounds (x - 50, y) || elem (x - 50, y) walls then Null else Neighbor (Destination (x - 50, y)) (genTracks LEFT (x, y) (x - 50, y))
+  | dir == RIGHT = if outOfBounds (x + 50, y) || elem (x + 50, y) walls then Null else Neighbor (Destination (x + 50, y)) (genTracks RIGHT (x, y) (x + 50, y))
+  | otherwise = Null
+
+genTracks :: Direction -> Point -> Point -> [Track]
+genTracks dir start end
+  | dir == UP = go start end [] 0 1
+  | dir == DOWN = go start end [] 0 (-1)
+  | dir == LEFT = go start end [] (-1) 0
+  | dir == RIGHT = go start end [] 1 0
+  | otherwise = []
+  where 
+    go (x1, y1) (x2, y2) acc xAcc yAcc
+      | x1 == x2 && y1 == y2 = reverse acc
+      | otherwise = go (x1 + xAcc, y1 + yAcc) (x2, y2) ((x1 + xAcc, y1 + yAcc) : acc) xAcc yAcc
+
 
 
 {-
@@ -108,6 +137,9 @@ specify walls by the center point only.
 
 lvl1Walls :: [Point]
 lvl1Walls =  [(-375, -375), (175, 175), (25, 25)]
+
+outOfBounds :: Point -> Bool
+outOfBounds (x, y) = x > 500 || x < -500 || y > 250 || y < -500
 
 -- getTopRightCors :: [Point]
 -- getTopRightCors = [Point (x, y) | x <- [1..(getLength)], y <- [1..(getHeight)]]

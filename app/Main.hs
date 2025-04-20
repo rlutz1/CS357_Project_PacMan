@@ -34,7 +34,8 @@ draw :: MainGameWorld -> Picture
 draw (MainGameWorld b p gs) = Pictures (drawBoard b ++ (drawPlayer p : drawGhosts gs)) -- tiles, collectibles, then player, ghosts
 
 update :: Float -> MainGameWorld -> MainGameWorld 
-update _ w = w -- todo
+update _ w = w
+-- update _ (MainGameWorld b (Player (x, y) a f c d) stuff) = (MainGameWorld b (Player (x + 1, y) a f c d) stuff)
 
 handle :: Event -> MainGameWorld -> MainGameWorld
 handle e w = w -- todo
@@ -63,7 +64,7 @@ drawTile (Tile c (Boundary bottom top left right)) =
   color c (Polygon [(left, top), (right, top), (right, bottom), (left, bottom)])
 
 drawPlayer :: Player -> Picture
-drawPlayer (Player (x, y) _ _ _) = color yellow (translate x y (thickCircle 10 20))
+drawPlayer (Player (x, y) _ _ _ _) = color yellow (translate x y (thickCircle 10 20))
 
 drawGhosts :: [Ghost] -> [Picture]
 drawGhosts gs = [Circle 15]
