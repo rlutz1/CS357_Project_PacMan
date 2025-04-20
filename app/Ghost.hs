@@ -1,5 +1,6 @@
 module Ghost where
 
+import Brillo
 import Board
 
 data Ghost = 
