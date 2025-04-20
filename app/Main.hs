@@ -6,41 +6,59 @@ import Board
 import Ghost
 import Player
 
+
+data MainGameWorld = 
+    MainGameWorld {
+      board :: Board,
+      player :: Player,
+      ghosts :: [Ghost]
+    }
+    deriving (Eq, Show)
+
+
+
 main :: IO ()
 main = 
   do
-    let window = mainWindow
-    let world = getWorld
+    -- let window = mainWindow
+    -- let world = getWorld
     play 
       window
       white
       100
-      world
+      getWorld
       drawFunc
       handleEvent            
       updateFunc
-    -- play 
-    --   window
-    --   white
-    --   100
-    --   world
-    --   -- (\world -> translate 50 50 world)
-    --   id
-    --   handleEvent            
-    --   (\_ cir -> cir)
 
-    -- animate 
-    --   window
-    --   white 
-    --   (\t -> getWorld t)
 
-    -- simulate
-    --   window 
-    --   white
-    --   100
-    --   getWorld
-    --   id
-    --   (\vp x m -> m)
+
+draw :: World -> Picture
+draw = undefined
+
+update :: Float -> World -> World 
+update = undefined
+
+handle :: Event -> World -> World
+handle = undefined
+
+world :: World
+world = undefined
+
+window :: Display
+window = InWindow "HaskMan" (1000, 1000) (0, 0)
+
+
+getWorld :: MainGameWorld
+getWorld = MainGameWorld  (Player (-75, -75) NONE NONE (0, 0)) (genLevel 1)
+
+
+handleEvent :: Event -> World -> World
+handleEvent (EventKey (SpecialKey KeyUp) Down _ _) w = tryMove w UP
+handleEvent (EventKey (SpecialKey KeyDown) Down _ _) w = tryMove w DOWN
+handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) w = tryMove w LEFT
+handleEvent (EventKey (SpecialKey KeyRight) Down _ _) w = tryMove w RIGHT
+handleEvent _ w = w
 
 updateFunc :: Float -> World -> World
 updateFunc t (World (Player (x, y) dir next (vx, vy)) b)
@@ -82,38 +100,13 @@ genCircles ((x, y):pts) = Color red (translate a b (Circle 20)) : genCircles pts
 -- getPoints :: World -> [(Int, Int)]
 -- getPoints (World _ _ _ (Grid points)) = points
 
-data Grid = Grid [(Int, Int)]
-  deriving (Show)
-
-data World = World {
-  player :: Player,
-  board :: Board
-}
-  deriving (Show)
-
-data Player = Player {
-  playerLocation :: (Float, Float),
-  currDirection :: Direction, 
-  nextDirection :: Direction, 
-  velocity :: (Float, Float)
-}
-  deriving (Show)
 
 -- data Direction = UP | DOWN | LEFT | RIGHT | NONE
 --   deriving (Enum, Eq, Show)
 
-getWorld :: World
-getWorld = World  (Player (-75, -75) NONE NONE (0, 0)) (genLevel 1)
-
 -- getGrid :: Int -> Int -> [(Int, Int)]
 -- getGrid l w = [(x, y) | x <- [0..l], y <- [0..w]]
 
-handleEvent :: Event -> World -> World
-handleEvent (EventKey (SpecialKey KeyUp) Down _ _) w = tryMove w UP
-handleEvent (EventKey (SpecialKey KeyDown) Down _ _) w = tryMove w DOWN
-handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) w = tryMove w LEFT
-handleEvent (EventKey (SpecialKey KeyRight) Down _ _) w = tryMove w RIGHT
-handleEvent _ w = w
 
 tryMove :: World -> Direction -> World
 tryMove (World (Player pos curr next v) b) dir =   
@@ -162,5 +155,4 @@ specialKeyPressed :: Event -> Bool
 specialKeyPressed (EventKey (Char k) _ _ _) = k == 'g'
 specialKeyPressed _ = False
 
-mainWindow :: Display
-mainWindow = InWindow "Nice Window" (1000, 1000) (100, 100)
+
