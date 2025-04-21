@@ -38,7 +38,14 @@ update _ w = w
 -- update _ (MainGameWorld b (Player (x, y) a f c d) stuff) = (MainGameWorld b (Player (x + 1, y) a f c d) stuff)
 
 handle :: Event -> MainGameWorld -> MainGameWorld
-handle e w = w -- todo
+handle (EventKey (SpecialKey KeyUp) Down _ _) w = queueMove w UP
+handle (EventKey (SpecialKey KeyDown) Down _ _) w = queueMove w DOWN
+handle (EventKey (SpecialKey KeyLeft) Down _ _) w = queueMove w LEFT
+handle (EventKey (SpecialKey KeyRight) Down _ _) w = queueMove w RIGHT
+handle _ w = w
+
+queueMove :: MainGameWorld -> Direction -> MainGameWorld
+queueMove (MainGameWorld b (Player l path curr next v) gs) dir = (MainGameWorld b (Player l path curr dir v) gs)
 
 world :: MainGameWorld
 world = MainGameWorld (genLevel 1) genPlayer []

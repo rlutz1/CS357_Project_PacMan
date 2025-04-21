@@ -115,15 +115,15 @@ getNeighbor dir (x, y) walls
 
 genTracks :: Direction -> Point -> Point -> [Track]
 genTracks dir start end
-  | dir == UP = go start end [] 0 1
-  | dir == DOWN = go start end [] 0 (-1)
-  | dir == LEFT = go start end [] (-1) 0
-  | dir == RIGHT = go start end [] 1 0
+  | dir == UP = go (>=) start end [] 0 0.1
+  | dir == DOWN = go (<=) start end [] 0 (-0.1)
+  | dir == LEFT = go (<=) start end [] (-0.1) 0
+  | dir == RIGHT = go (>=) start end [] 0.1 0
   | otherwise = []
   where 
-    go (x1, y1) (x2, y2) acc xAcc yAcc
-      | x1 == x2 && y1 == y2 = reverse acc
-      | otherwise = go (x1 + xAcc, y1 + yAcc) (x2, y2) ((x1 + xAcc, y1 + yAcc) : acc) xAcc yAcc
+    go pred (x1, y1) (x2, y2) acc xAcc yAcc
+      | pred x1 x2 && pred y1 y2 = reverse ((x2, y2) : acc) -- issue with works for up/right i think, potential issue down left
+      | otherwise = go pred (x1 + xAcc, y1 + yAcc) (x2, y2) ((x1 + xAcc, y1 + yAcc) : acc) xAcc yAcc
 
 
 
