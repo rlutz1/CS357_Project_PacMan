@@ -126,7 +126,6 @@ genTracks dir start end
       | otherwise = go pred (x1 + xAcc, y1 + yAcc) (x2, y2) ((x1 + xAcc, y1 + yAcc) : acc) xAcc yAcc
 
 
-
 {-
 ------------------------------------------------------------
 WALLS
