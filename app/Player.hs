@@ -27,27 +27,41 @@ first, if the player currdir /= nextdir, check
 -}
 movePlayer :: Player -> Board -> Player
 movePlayer (Player loc (dest, []) curr next) b = (Player loc (dest, [loc]) curr next)
-movePlayer (Player loc (dest, [p]) curr next) b -- exactly one move left queued
-  | curr /= next = changeDir (Player loc (dest, [p]) curr next) b 
-  | otherwise = sameDir (Player loc (dest, [p]) curr next) b 
-movePlayer (Player loc (dest, (t:ts)) curr next) _ = (Player t (dest, (ts)) curr curr)
+movePlayer (Player loc (dest, t:ts) curr next) b
+  | closeEnough (ts) = queueTracks (Player t (dest, ts) curr next) b
+  | otherwise = Player t (dest, (ts)) curr curr
+    
+queueTracks :: Player -> Board -> Player
+queueTracks (Player loc (dest, ts) curr next) b -- exactly one move left queued
+  | curr /= next = changeDir (Player loc (dest, ts) curr next) b 
+  | otherwise = sameDir (Player loc (dest, ts) curr next) b 
+
+-- movePlayer (Player loc (dest, [t]) curr next) b -- exactly one move left queued
+--   | curr /= next = changeDir (Player loc (dest, [t]) curr next) b 
+--   | otherwise = sameDir (Player loc (dest, [t]) curr next) b 
+-- movePlayer (Player loc (dest, (t:ts)) curr next) _ = (Player t (dest, (ts)) curr curr)
 
 changeDir :: Player -> Board -> Player
-changeDir (Player loc ((Destination point), [t]) curr next) b 
-  | nextTracks == Null = sameDir (Player loc ((Destination point), [t]) curr curr) b 
-  | otherwise = (Player t (deconDestination nextTracks, deconTracks nextTracks) next next)
+changeDir (Player loc ((Destination point), ts) curr next) b 
+  | nextTracks == Null = sameDir (Player loc ((Destination point), ts) curr curr) b 
+  | otherwise = (Player loc (deconDestination nextTracks, ts ++ deconTracks nextTracks) next next)
   where 
     nextPiv = getPivot point b
     nextTracks = getTracks nextPiv next
 
 
+
+
 sameDir :: Player -> Board -> Player
-sameDir (Player loc ((Destination point), [t]) curr next) b 
-  | nextTracks == Null = Player t (Destination t, []) NONE NONE 
-  | otherwise = (Player t (deconDestination nextTracks, deconTracks nextTracks) curr curr) 
+sameDir (Player loc ((Destination point), ts) curr next) b 
+  | nextTracks == Null = Player loc (Destination loc, ts) curr curr 
+  | otherwise = (Player loc (deconDestination nextTracks, ts ++ deconTracks nextTracks) curr curr) 
   where 
     nextPiv = getPivot point b
     nextTracks = getTracks nextPiv curr
+
+closeEnough :: [a] -> Bool
+closeEnough xs = length xs <= 100
 
 {-
 this is called every frame; todo:
