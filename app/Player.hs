@@ -27,15 +27,15 @@ first, if the player currdir /= nextdir, check
 want to clean this up, works well enough to continue testing, but there's def some gunk to cut out
 -}
 movePlayer :: Player -> Board -> Player
-movePlayer (Player loc (dest, []) curr next) b = Player loc (dest, [loc]) curr next
+movePlayer (Player loc (dest, []) curr next) _ = Player loc (dest, [loc]) curr next
 movePlayer (Player _ (dest, t:ts) curr next) b
-  | closeEnough ts = queueTracks (Player t (dest, ts) curr next) b
-  | otherwise = Player t (dest, ts) curr curr
+  | curr /= next && closeEnough ts = changeDir (Player t (dest, ts) curr next) b
+  | otherwise = sameDir (Player t (dest, ts) curr curr) b
     
-queueTracks :: Player -> Board -> Player
-queueTracks (Player loc (dest, ts) curr next) b -- we are attempting oto queue up the next move
-  | curr /= next = changeDir (Player loc (dest, ts) curr next) b 
-  | otherwise = sameDir (Player loc (dest, ts) curr next) b 
+-- queueTracks :: Player -> Board -> Player
+-- queueTracks (Player loc (dest, ts) curr next) b -- we are attempting oto queue up the next move
+--   | curr /= next = changeDir (Player loc (dest, ts) curr next) b 
+--   | otherwise = sameDir (Player loc (dest, ts) curr next) b 
 
 -- todo clean up
 changeDir :: Player -> Board -> Player
