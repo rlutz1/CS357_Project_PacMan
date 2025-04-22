@@ -95,10 +95,10 @@ getNeighbor dir (x, y) walls
 
 genTracks :: Direction -> Point -> Point -> [Track]
 genTracks dir start end
-  | dir == UP = go (>=) start end [] 0 (1)
+  | dir == UP = go (>=) start end [] 0 1
   | dir == DOWN = go (<=) start end [] 0 (-1)
   | dir == LEFT = go (<=) start end [] (-1) 0
-  | dir == RIGHT = go (>=) start end [] (1) 0
+  | dir == RIGHT = go (>=) start end [] 1 0
   | otherwise = []
   where 
     go pred (x1, y1) (x2, y2) acc xAcc yAcc
