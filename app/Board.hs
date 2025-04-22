@@ -1,24 +1,6 @@
 module Board where
 
 import Brillo
--- data Grid = [(Zone, Node)]
---     deriving (Eq, Show)
--- data Board = Board [Tile]
---     deriving (Eq, Show)   
-
--- data Tile = Tile (Zone, Node)
---     deriving (Eq, Show)
-
--- data Node = None | Wall | Path Center Zone [Direction]
---     deriving (Eq, Show)
--- -- data Node = Wall | Path Center Zone (Neighbors [(Direction, Node)])
--- --     deriving (Eq, Show)
--- data Center = Center Point
---     deriving (Eq, Show)
--- data Zone = Zone Float Float Float Float
---     deriving (Eq, Show)
--- data Neighbors = Neighbors [(Direction, Node)]
---     deriving (Eq, Show)
 
 data Board = 
   Board {
