@@ -22,7 +22,7 @@ main =
     play 
       window
       white
-      100
+      75
       world
       draw
       handle            
