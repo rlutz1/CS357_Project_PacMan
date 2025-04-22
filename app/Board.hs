@@ -126,6 +126,12 @@ genTracks dir start end
       | otherwise = go pred (x1 + xAcc, y1 + yAcc) (x2, y2) ((x1 + xAcc, y1 + yAcc) : acc) xAcc yAcc
 
 
+getPivot :: Point -> Board -> Maybe Pivot
+getPivot _ (Board _ []) = Nothing
+getPivot point (Board ts ((Pivot pt ns):ps))
+  | point == pt = Just (Pivot pt ns)
+  | otherwise = getPivot point (Board ts ps)
+
 {-
 ------------------------------------------------------------
 WALLS
