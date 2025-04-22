@@ -61,13 +61,7 @@ data Direction = UP | DOWN | LEFT | RIGHT | NONE
     deriving (Enum, Eq, Show)
 
 
-playerStartPoint :: Point
-playerStartPoint = (-475, -475)
 
-genLevel :: Int -> Board
-genLevel lvlNum 
-  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls)
-  | otherwise = Board [] []
 
 
 {-
@@ -143,8 +137,27 @@ specify walls by the center point only.
 lvl1Walls :: [Point]
 lvl1Walls =  [(-375, -375), (175, 175), (25, 25)]
 
+
+{-
+------------------------------------------------------------
+UTILS
+
+general utility funcs
+------------------------------------------------------------
+-}
+
 outOfBounds :: Point -> Bool
 outOfBounds (x, y) = x > 500 || x < -500 || y > 250 || y < -500
+
+playerStartPoint :: Point
+playerStartPoint = (-475, -475)
+
+genLevel :: Int -> Board
+genLevel lvlNum 
+  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls)
+  | otherwise = Board [] []
+
+
 
 -- getTopRightCors :: [Point]
 -- getTopRightCors = [Point (x, y) | x <- [1..(getLength)], y <- [1..(getHeight)]]

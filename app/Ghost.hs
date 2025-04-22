@@ -8,7 +8,9 @@ data Ghost =
     location :: Point,
     path :: (Destination, [Track]),
     currDirection :: Direction, 
-    nextDirection :: Direction, 
-    velocity :: Point
+    nextDirection :: Direction
  }
  deriving (Eq, Show)
+
+updateGhosts :: [Ghost] -> [Ghost]
+updateGhosts gs = gs

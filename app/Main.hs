@@ -34,7 +34,7 @@ draw :: MainGameWorld -> Picture
 draw (MainGameWorld b p gs) = Pictures (drawBoard b ++ (drawPlayer p : drawGhosts gs)) -- tiles, collectibles, then player, ghosts
 
 update :: Float -> MainGameWorld -> MainGameWorld 
-update _ w = w
+update _ w = updateWorld w
 -- update _ (MainGameWorld b (Player (x, y) a f c d) stuff) = (MainGameWorld b (Player (x + 1, y) a f c d) stuff)
 
 handle :: Event -> MainGameWorld -> MainGameWorld
@@ -45,7 +45,7 @@ handle (EventKey (SpecialKey KeyRight) Down _ _) w = queueMove w RIGHT
 handle _ w = w
 
 queueMove :: MainGameWorld -> Direction -> MainGameWorld
-queueMove (MainGameWorld b (Player l path curr next v) gs) dir = (MainGameWorld b (Player l path curr dir v) gs)
+queueMove (MainGameWorld b (Player l path curr next) gs) dir = MainGameWorld b (Player l path curr dir) gs
 
 world :: MainGameWorld
 world = MainGameWorld (genLevel 1) genPlayer []
@@ -71,10 +71,23 @@ drawTile (Tile c (Boundary bottom top left right)) =
   color c (Polygon [(left, top), (right, top), (right, bottom), (left, bottom)])
 
 drawPlayer :: Player -> Picture
-drawPlayer (Player (x, y) _ _ _ _) = color yellow (translate x y (thickCircle 10 20))
+drawPlayer (Player (x, y) _ _ _) = color yellow (translate x y (thickCircle 10 20))
 
 drawGhosts :: [Ghost] -> [Picture]
-drawGhosts gs = [Circle 15]
+drawGhosts gs = [Circle 15] -- todo
+
+
+{-
+------------------------------------------------------------
+UPDATING FUNCTIONS
+------------------------------------------------------------
+-}
+
+updateWorld :: MainGameWorld -> MainGameWorld
+updateWorld (MainGameWorld b p gs) = MainGameWorld (updateBoard b) (updatePlayer p) (updateGhosts gs)
+
+
+
 
 -- handleEvent :: Event -> World -> World
 -- handleEvent (EventKey (SpecialKey KeyUp) Down _ _) w = tryMove w UP
