@@ -23,7 +23,9 @@ import Brillo
 data Board = 
   Board {
     tiles :: [Tile], -- for display
-    pivots :: [Pivot] -- for actual movement
+    pivots :: [Pivot], -- for actual movement
+    lives :: Int, -- for displaying lives
+    score :: Int -- for displaying the current score
   }
   deriving (Eq, Show) 
 
@@ -123,10 +125,10 @@ genTracks dir start end
 
 
 getPivot :: Point -> Board -> Maybe Pivot
-getPivot _ (Board _ []) = Nothing
-getPivot point (Board ts ((Pivot pt ns):ps))
+getPivot _ (Board _ [] l s) = Nothing
+getPivot point (Board ts ((Pivot pt ns):ps) l s)
   | point == pt = Just (Pivot pt ns)
-  | otherwise = getPivot point (Board ts ps)
+  | otherwise = getPivot point (Board ts ps l s)
 
 {-
 ------------------------------------------------------------
@@ -154,10 +156,16 @@ outOfBounds (x, y) = x > 500 || x < -500 || y > 250 || y < -500
 playerStartPoint :: Point
 playerStartPoint = (-475, -475)
 
+playerInitLives :: Int
+playerInitLives = 3
+
+playerInitScore :: Int
+playerInitScore = 0
+
 genLevel :: Int -> Board
 genLevel lvlNum 
-  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls)
-  | otherwise = Board [] []
+  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) playerInitLives playerInitScore
+  | otherwise = Board [] [] 0 0
 
 getTracks :: Maybe Pivot -> Direction -> Neighbor
 getTracks Nothing _ = Null

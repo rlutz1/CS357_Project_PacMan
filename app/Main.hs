@@ -45,7 +45,7 @@ handle (EventKey (SpecialKey KeyRight) Down _ _) w = queueMove w RIGHT
 handle _ w = w
 
 queueMove :: MainGameWorld -> Direction -> MainGameWorld
-queueMove (MainGameWorld b (Player l path curr next) gs) dir = MainGameWorld b (Player l path curr dir) gs
+queueMove (MainGameWorld b (Player l path curr _) gs) dir = MainGameWorld b (Player l path curr dir) gs
 
 world :: MainGameWorld
 world = MainGameWorld (genLevel 1) genPlayer []
@@ -63,8 +63,17 @@ DRAWING FUNCTIONS
 -}
 
 drawBoard :: Board -> [Picture]
-drawBoard (Board [] _) = [] 
-drawBoard (Board (t:tiles) ps) = drawTile t : drawBorder t : drawBoard (Board tiles ps)
+drawBoard (Board ts ps l s) = drawScore s : drawLives l : drawGrid ts
+
+drawGrid :: [Tile] -> [Picture]
+drawGrid  [] = [] 
+drawGrid (t:ts) = drawTile t : drawBorder t : drawGrid ts
+
+drawLives :: Int -> Picture
+drawLives l = scale 0.5 0.5 (translate (-1000) 800 (Text ("Lives: " ++ show l)))
+
+drawScore :: Int -> Picture
+drawScore s = scale 0.5 0.5 (translate (-1000) 600 (Text ("Score: " ++ show s)))
 
 drawTile :: Tile -> Picture
 drawTile (Tile c (Boundary bottom top left right)) = 

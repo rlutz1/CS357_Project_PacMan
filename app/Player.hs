@@ -18,6 +18,12 @@ genPlayer :: Player
 genPlayer = Player playerStartPoint (Destination playerStartPoint, []) NONE NONE
 
 {-
+------------------------------------------------------------
+MOVEMENT FUNCTIONS
+------------------------------------------------------------
+-}
+
+{-
 first, if the player currdir /= nextdir, check 
   if they're at close enough to end of their track
     grab the pivot (via player destination) from the board, try to grab the corresponding neighbor from that pivot
