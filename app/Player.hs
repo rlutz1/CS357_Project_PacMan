@@ -53,15 +53,17 @@ changeDir (Player loc ((Destination point), ts) curr next) b
 
 
 sameDir :: Player -> Board -> Player
-sameDir (Player loc ((Destination point), ts) curr next) b 
-  | nextTracks == Null = Player loc (Destination loc, ts) curr curr 
-  | otherwise = (Player loc (deconDestination nextTracks, ts ++ deconTracks nextTracks) curr curr) 
+sameDir (Player loc ((Destination point), []) curr next) b = (Player loc ((Destination point), []) curr next)
+sameDir (Player loc ((Destination point), [t]) curr next) b 
+  | nextTracks == Null = Player loc (Destination loc, [t]) curr curr 
+  | otherwise = (Player loc (deconDestination nextTracks, [t] ++ deconTracks nextTracks) curr curr) 
   where 
     nextPiv = getPivot point b
     nextTracks = getTracks nextPiv curr
+sameDir (Player loc ((Destination point), ts) curr next) b = (Player loc ((Destination point), ts) curr next)
 
 closeEnough :: [a] -> Bool
-closeEnough xs = length xs <= 100
+closeEnough xs = length xs <=25
 
 {-
 this is called every frame; todo:
