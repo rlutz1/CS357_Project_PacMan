@@ -64,11 +64,15 @@ DRAWING FUNCTIONS
 
 drawBoard :: Board -> [Picture]
 drawBoard (Board [] _) = [] 
-drawBoard (Board (t:tiles) ps) = drawTile t : drawBoard (Board tiles ps)
+drawBoard (Board (t:tiles) ps) = drawTile t : drawBorder t : drawBoard (Board tiles ps)
 
 drawTile :: Tile -> Picture
 drawTile (Tile c (Boundary bottom top left right)) = 
   color c (Polygon [(left, top), (right, top), (right, bottom), (left, bottom)])
+
+drawBorder :: Tile -> Picture
+drawBorder (Tile _ (Boundary bottom top left right)) = 
+  color black (Line [(left, top), (right, top), (right, bottom), (left, bottom)])
 
 drawPlayer :: Player -> Picture
 drawPlayer (Player (x, y) _ _ _) = color yellow (translate x y (thickCircle 10 20))
