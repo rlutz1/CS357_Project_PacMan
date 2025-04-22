@@ -37,7 +37,7 @@ data Pivot = Pivot Point (Neighbor, Neighbor, Neighbor, Neighbor)
 data Neighbor = Null | Neighbor Destination [Track]
   deriving (Eq, Show) 
 
-data Destination = None | Destination Point
+data Destination = Destination Point
   deriving (Eq, Show) 
 -- data Track = Track Point 
 --   deriving (Eq, Show) 
@@ -62,6 +62,8 @@ data Direction = UP | DOWN | LEFT | RIGHT | NONE
 
 
 
+updateBoard :: Board -> Board
+updateBoard b = b
 
 
 {-
@@ -109,10 +111,10 @@ getNeighbor dir (x, y) walls
 
 genTracks :: Direction -> Point -> Point -> [Track]
 genTracks dir start end
-  | dir == UP = go (>=) start end [] 0 0.1
-  | dir == DOWN = go (<=) start end [] 0 (-0.1)
-  | dir == LEFT = go (<=) start end [] (-0.1) 0
-  | dir == RIGHT = go (>=) start end [] 0.1 0
+  | dir == UP = go (>=) start end [] 0 (0.5)
+  | dir == DOWN = go (<=) start end [] 0 (-0.5)
+  | dir == LEFT = go (<=) start end [] (-0.5) 0
+  | dir == RIGHT = go (>=) start end [] (0.5) 0
   | otherwise = []
   where 
     go pred (x1, y1) (x2, y2) acc xAcc yAcc
@@ -157,7 +159,29 @@ genLevel lvlNum
   | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls)
   | otherwise = Board [] []
 
+getTracks :: Maybe Pivot -> Direction -> Neighbor
+getTracks Nothing _ = Null
+getTracks (Just (Pivot _ (upN, downN, leftN, rightN))) dir
+  | dir == UP = upN
+  | dir == DOWN = downN
+  | dir == LEFT = leftN
+  | dir == RIGHT = rightN
+  | otherwise = Null
 
+
+{-
+------------------------------------------------------------
+DECONSTRUCTORS
+
+essentially getters for easy reading
+------------------------------------------------------------
+-}
+
+deconDestination :: Neighbor -> Destination
+deconDestination (Neighbor dest _) = dest
+
+deconTracks :: Neighbor -> [Track]
+deconTracks (Neighbor _ tracks) = tracks
 
 -- getTopRightCors :: [Point]
 -- getTopRightCors = [Point (x, y) | x <- [1..(getLength)], y <- [1..(getHeight)]]

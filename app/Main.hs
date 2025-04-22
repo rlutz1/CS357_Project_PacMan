@@ -84,7 +84,7 @@ UPDATING FUNCTIONS
 -}
 
 updateWorld :: MainGameWorld -> MainGameWorld
-updateWorld (MainGameWorld b p gs) = MainGameWorld (updateBoard b) (updatePlayer p) (updateGhosts gs)
+updateWorld (MainGameWorld b p gs) = MainGameWorld (updateBoard b) (updatePlayer p b) (updateGhosts gs)
 
 
 
