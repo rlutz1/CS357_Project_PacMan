@@ -6,14 +6,18 @@ import Board
 import Ghost
 import Player
 
+data World = 
+    TitleScreen (World -> Picture) (Float -> World -> World) (Event -> World -> World)
+  | MainGameWorld Board Player [Ghost] (World -> Picture) (Float -> World -> World) (Event -> World -> World)
+  -- deriving (Eq, Show)
 
-data MainGameWorld = 
-    MainGameWorld {
-      board :: Board,
-      player :: Player,
-      ghosts :: [Ghost]
-    }
-    deriving (Eq, Show)
+-- data MainGameWorld = 
+--     MainGameWorld {
+--       board :: Board,
+--       player :: Player,
+--       ghosts :: [Ghost]
+--     }
+--     deriving (Eq, Show)
 
 
 
@@ -23,33 +27,73 @@ main =
       window
       white
       75
-      world
+      getTitle
       draw
       handle            
       update
 
 
+draw :: World -> Picture 
+draw (TitleScreen d u h) = d (TitleScreen d u h)
+draw (MainGameWorld b p gs d u h) = d (MainGameWorld b p gs d u h)
 
-draw :: MainGameWorld -> Picture
-draw (MainGameWorld b p gs) = Pictures (drawBoard b ++ (drawPlayer p : drawGhosts gs)) -- tiles, collectibles, then player, ghosts
+update :: Float -> World -> World
+update t (TitleScreen d u h) = u t (TitleScreen d u h)
+update t (MainGameWorld b p gs d u h) = u t (MainGameWorld b p gs d u h)
 
-update :: Float -> MainGameWorld -> MainGameWorld 
-update _ w = updateWorld w
+handle :: Event -> World -> World
+handle e (TitleScreen d u h) = h e (TitleScreen d u h)
+handle e (MainGameWorld b p gs d u h) = h e (MainGameWorld b p gs d u h)
+
+
+
+
+drawMain :: World -> Picture
+drawMain (MainGameWorld b p gs _ _ _) = Pictures (drawBoard b ++ (drawPlayer p : drawGhosts gs)) -- tiles, collectibles, then player, ghosts
+drawMain w = Blank
+
+updateMain :: Float -> World -> World 
+updateMain _ w = updateWorld w
 -- update _ (MainGameWorld b (Player (x, y) a f c d) stuff) = (MainGameWorld b (Player (x + 1, y) a f c d) stuff)
 
-handle :: Event -> MainGameWorld -> MainGameWorld
-handle (EventKey (SpecialKey KeyUp) Down _ _) w = queueMove w UP
-handle (EventKey (SpecialKey KeyDown) Down _ _) w = queueMove w DOWN
-handle (EventKey (SpecialKey KeyLeft) Down _ _) w = queueMove w LEFT
-handle (EventKey (SpecialKey KeyRight) Down _ _) w = queueMove w RIGHT
-handle _ w = w
+handleMain :: Event -> World -> World
+handleMain (EventKey (Char 'g') _ _ _) w = getTitle --TESTING
+handleMain (EventKey (SpecialKey KeyUp) Down _ _) w = queueMove w UP
+handleMain (EventKey (SpecialKey KeyDown) Down _ _) w = queueMove w DOWN
+handleMain (EventKey (SpecialKey KeyLeft) Down _ _) w = queueMove w LEFT
+handleMain (EventKey (SpecialKey KeyRight) Down _ _) w = queueMove w RIGHT
+handleMain _ w = w
 
-queueMove :: MainGameWorld -> Direction -> MainGameWorld
-queueMove (MainGameWorld b (Player l path curr _) gs) dir = MainGameWorld b (Player l path curr dir) gs
+updateTitle :: Float -> World -> World
+updateTitle t w = w
 
-world :: MainGameWorld
-world = MainGameWorld (genLevel 1) genPlayer []
+drawTitle :: World -> Picture
+drawTitle w = Circle 60
 
+handleTitle :: Event -> World -> World
+handleTitle (EventKey (Char 'g') _ _ _) w = getMainGame
+handleTitle _ w = w
+
+queueMove :: World -> Direction -> World
+queueMove (MainGameWorld b (Player l path curr _) gs d u h) dir = MainGameWorld b (Player l path curr dir) gs d u h
+
+getMainGame :: World
+getMainGame = MainGameWorld (genLevel 1) genPlayer [] drawMain updateMain handleMain
+
+getTitle :: World 
+getTitle = TitleScreen drawTitle updateTitle handleTitle
+
+-- getCurrWorld :: [(World, Bool)] -> Maybe World
+-- getCurrWorld [] = Nothing
+-- getCurrWorld ((w, s):worldStates) 
+--   | s = Just w
+--   | otherwise = getCurrWorld worldStates
+
+-- worldStates ::[(World, Bool)]
+-- worldStates = 
+
+-- worlds :: [World]
+-- worlds = [getTitle, getMainGame]
 
 
 window :: Display
@@ -103,8 +147,9 @@ UPDATING FUNCTIONS
 ------------------------------------------------------------
 -}
 
-updateWorld :: MainGameWorld -> MainGameWorld
-updateWorld (MainGameWorld b p gs) = MainGameWorld (updateBoard b p) (updatePlayer p b) (updateGhosts gs)
+updateWorld :: World -> World
+updateWorld (MainGameWorld b p gs d u h) = MainGameWorld (updateBoard b p) (updatePlayer p b) (updateGhosts gs) d u h
+updateWorld w = w
 
 
 
