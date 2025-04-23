@@ -57,7 +57,7 @@ updateMain _ w = updateWorld w
 -- update _ (MainGameWorld b (Player (x, y) a f c d) stuff) = (MainGameWorld b (Player (x + 1, y) a f c d) stuff)
 
 handleMain :: Event -> World -> World
-handleMain (EventKey (Char 'g') _ _ _) w = getTitle --TESTING
+-- handleMain (EventKey (Char 'g') _ _ _) w = getTitle --TESTING
 handleMain (EventKey (SpecialKey KeyUp) Down _ _) w = queueMove w UP
 handleMain (EventKey (SpecialKey KeyDown) Down _ _) w = queueMove w DOWN
 handleMain (EventKey (SpecialKey KeyLeft) Down _ _) w = queueMove w LEFT
