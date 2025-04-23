@@ -57,7 +57,7 @@ updateMain _ w = updateWorld w
 -- update _ (MainGameWorld b (Player (x, y) a f c d) stuff) = (MainGameWorld b (Player (x + 1, y) a f c d) stuff)
 
 handleMain :: Event -> World -> World
--- handleMain (EventKey (Char 'g') _ _ _) w = getTitle --TESTING
+handleMain (EventKey (Char 'g') Down _ _) w = getTitle -- works!!!!!!!!!!!!!!!!!!!!!!!
 handleMain (EventKey (SpecialKey KeyUp) Down _ _) w = queueMove w UP
 handleMain (EventKey (SpecialKey KeyDown) Down _ _) w = queueMove w DOWN
 handleMain (EventKey (SpecialKey KeyLeft) Down _ _) w = queueMove w LEFT
@@ -71,7 +71,7 @@ drawTitle :: World -> Picture
 drawTitle w = Circle 60
 
 handleTitle :: Event -> World -> World
-handleTitle (EventKey (Char 'g') _ _ _) w = getMainGame
+handleTitle (EventKey (Char 'g') Down _ _) w = getMainGame
 handleTitle _ w = w
 
 queueMove :: World -> Direction -> World
