@@ -6,6 +6,7 @@ data Board =
   Board {
     tiles :: [Tile], -- for display
     pivots :: [Pivot], -- for actual movement
+    collectibles :: [Collectible], -- collectibles, maybe within pivot later?
     lives :: Int, -- for displaying lives
     score :: Int -- for displaying the current score
   }
@@ -44,11 +45,53 @@ type Track = Point
 data Direction = UP | DOWN | LEFT | RIGHT | NONE
     deriving (Enum, Eq, Show)
 
+-- effect, score value color for drawing
+data Collectible = Eaten Point | Collectible Effect Int Color Point
+  deriving (Eq, Show) 
+
+data Effect = NoEffect | GhostsOff
+  deriving (Eq, Show) 
+
+data Player = 
+  Player {
+    location :: Point,
+    path :: (Destination, [Track]),
+    currDirection :: Direction, 
+    nextDirection :: Direction
+  }
+  deriving (Eq, Show)
 
 
-updateBoard :: Board -> Board
-updateBoard b = b
+updateBoard :: Board -> Player -> Board
+updateBoard b p = 
+  do
+    updateCollectibles b p
 
+
+
+-- terribly inefficient, poorly organized, this would be better encapsed in player some how...but idk yet
+updateCollectibles :: Board -> Player -> Board 
+updateCollectibles (Board ts ps cs l s) (Player loc _ _ _) 
+  | length filteredColls < length cs = Board ts ps (Eaten loc : filteredColls) l (s + updateScore (findColl loc cs))
+  | otherwise = Board ts ps cs l s
+  where
+    filteredColls = filter (\c -> deconCollLoc c /= loc) cs
+
+updateScore :: Maybe Collectible -> Int
+updateScore Nothing = 0
+updateScore (Just (Collectible _ s _ _)) = s
+updateScore (Just (Eaten _)) = 0
+
+findColl :: Point -> [Collectible] -> Maybe Collectible
+findColl p [] = Nothing
+findColl p (Eaten _:cs) = findColl p cs
+findColl p ((Collectible e s c pt):cs)
+  | p == pt = Just (Collectible e s c pt)
+  | otherwise = findColl p cs
+
+deconCollLoc :: Collectible -> Point
+deconCollLoc (Eaten p) = p
+deconCollLoc (Collectible _ _ _ p) = p
 
 {-
 ------------------------------------------------------------
@@ -80,7 +123,10 @@ handlers for the underlying movement mechanic, known as tracks.
 -- data Neighbor = Null | Neighbor Destination [Track]
 
 genPivots :: [Point] -> [Pivot]
-genPivots walls = [ Pivot p (getNeighbor UP p walls, getNeighbor DOWN p walls, getNeighbor LEFT p walls, getNeighbor RIGHT p walls) | p <- genCenters, not (elem p walls)]
+genPivots walls = [ Pivot p (getNeighbor UP p walls, getNeighbor DOWN p walls, getNeighbor LEFT p walls, getNeighbor RIGHT p walls) | p <- genCenters, notElem p walls]
+
+genCollectibles :: [Point] -> [Collectible] -- for now, to get some basic ones "installed"
+genCollectibles walls = [ Collectible NoEffect 10 orange p | p <- genCenters, notElem p walls]
 
 genCenters :: [Point]
 genCenters = [ (x, y) | x <- [-475, -425..475], y <- [-475, -425..225] ]
@@ -107,10 +153,10 @@ genTracks dir start end
 
 
 getPivot :: Point -> Board -> Maybe Pivot
-getPivot _ (Board _ [] l s) = Nothing
-getPivot point (Board ts ((Pivot pt ns):ps) l s)
+getPivot _ (Board _ [] _ _ _) = Nothing
+getPivot point (Board ts ((Pivot pt ns):ps) cs l s)
   | point == pt = Just (Pivot pt ns)
-  | otherwise = getPivot point (Board ts ps l s)
+  | otherwise = getPivot point (Board ts ps cs l s)
 
 {-
 ------------------------------------------------------------
@@ -122,6 +168,9 @@ specify walls by the center point only.
 
 lvl1Walls :: [Point]
 lvl1Walls =  [(-375, -375), (175, 175), (25, 25)]
+
+lvl1SpecialCollectibles :: [(Collectible, Point)]
+lvl1SpecialCollectibles = undefined
 
 
 {-
@@ -146,8 +195,8 @@ playerInitScore = 0
 
 genLevel :: Int -> Board
 genLevel lvlNum 
-  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) playerInitLives playerInitScore
-  | otherwise = Board [] [] 0 0
+  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore 
+  | otherwise = Board [] [] [] 0 0
 
 getTracks :: Maybe Pivot -> Direction -> Neighbor
 getTracks Nothing _ = Null

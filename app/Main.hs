@@ -63,11 +63,18 @@ DRAWING FUNCTIONS
 -}
 
 drawBoard :: Board -> [Picture]
-drawBoard (Board ts ps l s) = drawScore s : drawLives l : drawGrid ts
+drawBoard (Board ts ps cs l s) = drawScore s : drawLives l :  (drawGrid ts ++ drawCollectibles cs)
 
-drawGrid :: [Tile] -> [Picture]
+drawGrid :: [Tile] -> [Picture] -- todo: change these to tail recursion
 drawGrid  [] = [] 
 drawGrid (t:ts) = drawTile t : drawBorder t : drawGrid ts
+
+drawCollectibles :: [Collectible] -> [Picture]
+drawCollectibles = map drawCollectible
+
+drawCollectible :: Collectible -> Picture
+drawCollectible (Eaten _) = Blank
+drawCollectible (Collectible _ _ c (x, y)) = color c (translate x y (thickCircle 5 10))
 
 drawLives :: Int -> Picture
 drawLives l = scale 0.5 0.5 (translate (-1000) 800 (Text ("Lives: " ++ show l)))
@@ -97,7 +104,7 @@ UPDATING FUNCTIONS
 -}
 
 updateWorld :: MainGameWorld -> MainGameWorld
-updateWorld (MainGameWorld b p gs) = MainGameWorld (updateBoard b) (updatePlayer p b) (updateGhosts gs)
+updateWorld (MainGameWorld b p gs) = MainGameWorld (updateBoard b p) (updatePlayer p b) (updateGhosts gs)
 
 
 
