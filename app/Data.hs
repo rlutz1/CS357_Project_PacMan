@@ -42,6 +42,7 @@ type Bottom = Float -- for ease of reading lol
 type Top = Float
 type Left = Float
 type Right = Float
+
 type Track = Point
 
 data Direction = UP | DOWN | LEFT | RIGHT | NONE
