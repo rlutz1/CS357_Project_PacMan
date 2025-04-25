@@ -6,18 +6,12 @@ import Board
 import Ghost
 import Player
 
+
+-- functions in order: draw, update, handle (d u h)
 data World = 
     TitleScreen (World -> Picture) (Float -> World -> World) (Event -> World -> World)
   | MainGameWorld Board Player [Ghost] (World -> Picture) (Float -> World -> World) (Event -> World -> World)
-  -- deriving (Eq, Show)
 
--- data MainGameWorld = 
---     MainGameWorld {
---       board :: Board,
---       player :: Player,
---       ghosts :: [Ghost]
---     }
---     deriving (Eq, Show)
 
 
 
@@ -36,65 +30,68 @@ main =
 draw :: World -> Picture 
 draw (TitleScreen d u h) = d (TitleScreen d u h)
 draw (MainGameWorld b p gs d u h) = d (MainGameWorld b p gs d u h)
+draw _ = Blank
 
 update :: Float -> World -> World
 update t (TitleScreen d u h) = u t (TitleScreen d u h)
 update t (MainGameWorld b p gs d u h) = u t (MainGameWorld b p gs d u h)
+update _ w = w
+
 
 handle :: Event -> World -> World
 handle e (TitleScreen d u h) = h e (TitleScreen d u h)
 handle e (MainGameWorld b p gs d u h) = h e (MainGameWorld b p gs d u h)
+handle _ w = w
 
 
-
+{-
+------------------------------------------------------------
+MAIN GAME FUNCTIONS
+------------------------------------------------------------
+-}
 
 drawMain :: World -> Picture
 drawMain (MainGameWorld b p gs _ _ _) = Pictures (drawBoard b ++ (drawPlayer p : drawGhosts gs)) -- tiles, collectibles, then player, ghosts
-drawMain w = Blank
+drawMain _ = Blank
 
 updateMain :: Float -> World -> World 
-updateMain _ w = updateWorld w
--- update _ (MainGameWorld b (Player (x, y) a f c d) stuff) = (MainGameWorld b (Player (x + 1, y) a f c d) stuff)
+updateMain _ (MainGameWorld b p gs d u h) = MainGameWorld (updateBoard b p) (updatePlayer p b) (updateGhosts gs) d u h
+updateMain _ w = w
 
 handleMain :: Event -> World -> World
-handleMain (EventKey (Char 'g') Down _ _) w = getTitle -- works!!!!!!!!!!!!!!!!!!!!!!!
+handleMain (EventKey (Char 'g') Down _ _) w = getTitle -- todo: works! leave this here to know implementation of main title thing
 handleMain (EventKey (SpecialKey KeyUp) Down _ _) w = queueMove w UP
 handleMain (EventKey (SpecialKey KeyDown) Down _ _) w = queueMove w DOWN
 handleMain (EventKey (SpecialKey KeyLeft) Down _ _) w = queueMove w LEFT
 handleMain (EventKey (SpecialKey KeyRight) Down _ _) w = queueMove w RIGHT
 handleMain _ w = w
 
+{-
+------------------------------------------------------------
+TITLE SCREEN FUNCTIONS
+------------------------------------------------------------
+-}
+
 updateTitle :: Float -> World -> World
-updateTitle t w = w
+updateTitle _ w = w 
 
 drawTitle :: World -> Picture
-drawTitle w = Circle 60
+drawTitle (TitleScreen _ _ _) = scale 0.5 0.5 (translate (-700) 0 (Text "Welcome to HaskMan!"))
+drawTitle _ = Blank
 
 handleTitle :: Event -> World -> World
-handleTitle (EventKey (Char 'g') Down _ _) w = getMainGame
+handleTitle (EventKey (Char 'g') Down _ _) w = getLevel1
 handleTitle _ w = w
 
 queueMove :: World -> Direction -> World
 queueMove (MainGameWorld b (Player l path curr _) gs d u h) dir = MainGameWorld b (Player l path curr dir) gs d u h
+queueMove w _ = w
 
-getMainGame :: World
-getMainGame = MainGameWorld (genLevel 1) genPlayer [] drawMain updateMain handleMain
+getLevel1 :: World
+getLevel1 = MainGameWorld (genLevel 1) genPlayer [] drawMain updateMain handleMain
 
 getTitle :: World 
 getTitle = TitleScreen drawTitle updateTitle handleTitle
-
--- getCurrWorld :: [(World, Bool)] -> Maybe World
--- getCurrWorld [] = Nothing
--- getCurrWorld ((w, s):worldStates) 
---   | s = Just w
---   | otherwise = getCurrWorld worldStates
-
--- worldStates ::[(World, Bool)]
--- worldStates = 
-
--- worlds :: [World]
--- worlds = [getTitle, getMainGame]
-
 
 window :: Display
 window = InWindow "HaskMan" (1050, 1050) (0, 0)
@@ -147,9 +144,6 @@ UPDATING FUNCTIONS
 ------------------------------------------------------------
 -}
 
-updateWorld :: World -> World
-updateWorld (MainGameWorld b p gs d u h) = MainGameWorld (updateBoard b p) (updatePlayer p b) (updateGhosts gs) d u h
-updateWorld w = w
 
 
 

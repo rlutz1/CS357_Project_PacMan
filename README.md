@@ -11,7 +11,7 @@ pacman game in haskell!
 + on all lives lost (lives == 0) game over and reset the board
 + implement the cherries--keep collision detection turn off and onable so that i can keep it on for a counter.
 + move how to draw each element of board into the element itself. each gets a draw method--itself -> Picture
-
++ encap update functions within each element--update main just turns into each update function being called on board, player, ghosts, etc as needed. can legit be id but move it.
 
 ## base requirements
 
