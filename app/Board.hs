@@ -57,9 +57,11 @@ data Player =
     location :: Point,
     path :: (Destination, [Track]),
     currDirection :: Direction, 
-    nextDirection :: Direction
+    nextDirection :: Direction,
+    drawP :: Player -> Picture,
+    updateP :: Player -> Board -> Player
   }
-  deriving (Eq, Show)
+  
 
 
 updateBoard :: Board -> Player -> Board
@@ -71,7 +73,7 @@ updateBoard b p =
 
 -- terribly inefficient, poorly organized, this would be better encapsed in player some how...but idk yet
 updateCollectibles :: Board -> Player -> Board 
-updateCollectibles (Board ts ps cs l s) (Player loc _ _ _) 
+updateCollectibles (Board ts ps cs l s) (Player loc _ _ _ _ _) 
   | length filteredColls < length cs = Board ts ps (Eaten loc : filteredColls) l (s + updateScore (findColl loc cs))
   | otherwise = Board ts ps cs l s
   where
