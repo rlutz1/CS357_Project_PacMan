@@ -134,6 +134,18 @@ playerInitLives = 3
 playerInitScore :: Int
 playerInitScore = 0
 
+hankStartPoint :: Point
+hankStartPoint = (475, 225)
+
+daleStartPoint :: Point
+daleStartPoint = (425, 225)
+
+boomhauerStartPoint :: Point
+boomhauerStartPoint = (375, 225)
+
+billStartPoint :: Point
+billStartPoint = (325, 225)
+
 genLevel :: Int -> Board
 genLevel lvlNum 
   | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore drawBoard updateBoard

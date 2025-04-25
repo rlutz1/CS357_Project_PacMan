@@ -56,7 +56,7 @@ drawMain (MainGameWorld b p gs _ _ _) = Pictures (drawBoard b ++ (drawPlayer p :
 drawMain _ = Blank
 
 updateMain :: Float -> World -> World 
-updateMain _ (MainGameWorld b p gs d u h) = MainGameWorld (updateBoard b p) (updatePlayer p b) (updateGhosts gs) d u h
+updateMain _ (MainGameWorld b p gs d u h) = MainGameWorld (updateBoard b p) (updatePlayer p b) (updateGhosts gs b) d u h
 updateMain _ w = w
 
 handleMain :: Event -> World -> World
