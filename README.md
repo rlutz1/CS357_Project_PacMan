@@ -13,6 +13,8 @@ pacman game in haskell!
 + move how to draw each element of board into the element itself. each gets a draw method--itself -> Picture
 + encap update functions within each element--update main just turns into each update function being called on board, player, ghosts, etc as needed. can legit be id but move it.
 
++ need to give the ghosts like 3 frames before they start moving would be nice
+
 + move players and ghosts to within board? or is it overkill; it'll likely be helpful for the ghost ai
 
 ## base requirements

@@ -18,16 +18,16 @@ genGhosts :: [Ghost]
 genGhosts = [genHank, genDale, genBoomhauer, genBill]
 
 genHank :: Ghost
-genHank = Ghost hankStartPoint (Destination hankStartPoint, [hankStartPoint]) NONE NONE drawHank updateHank
+genHank = Ghost hankStartPoint (Destination hankStartPoint, []) NONE NONE drawHank updateHank
 
 genDale :: Ghost
-genDale = Ghost daleStartPoint (Destination daleStartPoint, [daleStartPoint]) NONE NONE drawDale updateDale
+genDale = Ghost daleStartPoint (Destination daleStartPoint, []) NONE NONE drawDale updateDale
 
 genBoomhauer :: Ghost
-genBoomhauer = Ghost boomhauerStartPoint (Destination boomhauerStartPoint, [boomhauerStartPoint]) NONE NONE drawBoomhauer updateBoomhauer
+genBoomhauer = Ghost boomhauerStartPoint (Destination boomhauerStartPoint, []) NONE NONE drawBoomhauer updateBoomhauer
 
 genBill :: Ghost
-genBill = Ghost billStartPoint (Destination billStartPoint, [billStartPoint]) NONE NONE drawBill updateBill
+genBill = Ghost billStartPoint (Destination billStartPoint, []) NONE NONE drawBill updateBill
 
 
 
@@ -104,6 +104,7 @@ GHOST MOVEMENT FUNCTIONS
 
 -- ai movement decisions for hankerooski
 moveHank :: Ghost -> Board -> Ghost
+moveHank (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
 moveHank (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
   where 
     nextPiv = getPivot point b
@@ -113,9 +114,10 @@ moveHank (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDe
     right = getTracks nextPiv RIGHT
     validDirs = dumbShuffle (filter (/= Null) [up,  left, down, right ])
 moveHank (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
-moveHank g _ = g -- should never happen, BUT
+
 
 moveDale :: Ghost -> Board -> Ghost
+moveDale (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
 moveDale (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
   where 
     nextPiv = getPivot point b
@@ -125,9 +127,9 @@ moveDale (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDe
     right = getTracks nextPiv RIGHT
     validDirs = dumbShuffle (filter (/= Null) [down,  left, up, right ])
 moveDale (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
-moveDale g _ = g -- should never happen, BUT
 
 moveBoomhauer :: Ghost -> Board -> Ghost
+moveBoomhauer (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
 moveBoomhauer (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
   where 
     nextPiv = getPivot point b
@@ -137,9 +139,9 @@ moveBoomhauer (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (de
     right = getTracks nextPiv RIGHT
     validDirs = dumbShuffle (filter (/= Null) [up,  right, down, left ])
 moveBoomhauer (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
-moveBoomhauer g _ = g -- should never happen, BUT
 
 moveBill :: Ghost -> Board -> Ghost
+moveBill (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
 moveBill (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
   where 
     nextPiv = getPivot point b
@@ -149,7 +151,6 @@ moveBill (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDe
     right = getTracks nextPiv RIGHT
     validDirs = dumbShuffle (filter (/= Null) [up,  left, down, right ])
 moveBill (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
-moveBill g _ = g -- should never happen, BUT
 
 
 
