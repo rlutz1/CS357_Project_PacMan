@@ -1,68 +1,7 @@
 module Board where
 
 import Brillo
-
-data Board = 
-  Board {
-    tiles :: [Tile], -- for display
-    pivots :: [Pivot], -- for actual movement
-    collectibles :: [Collectible], -- collectibles, maybe within pivot later?
-    lives :: Int, -- for displaying lives
-    score :: Int -- for displaying the current score
-  }
-  deriving (Eq, Show) 
-
-data Tile = Tile Color Boundary -- purely for drawing the tile map, aesthetics alone
-  deriving (Eq, Show) 
-
--- up down left right
-data Pivot = Pivot Point (Neighbor, Neighbor, Neighbor, Neighbor)
-  deriving (Eq, Show)  
-
-data Neighbor = Null | Neighbor Destination [Track]
-  deriving (Eq, Show) 
-
-data Destination = Destination Point
-  deriving (Eq, Show) 
--- data Track = Track Point 
---   deriving (Eq, Show) 
-
-data Boundary = 
-  Boundary {
-    b :: Bottom,
-    t :: Top,
-    l :: Left,
-    r :: Right
-  }
-  deriving (Eq, Show) 
-
-type Bottom = Float -- for ease of reading lol
-type Top = Float
-type Left = Float
-type Right = Float
-type Track = Point
-
-data Direction = UP | DOWN | LEFT | RIGHT | NONE
-    deriving (Enum, Eq, Show)
-
--- effect, score value color for drawing
-data Collectible = Eaten Point | Collectible Effect Int Color Point
-  deriving (Eq, Show) 
-
-data Effect = NoEffect | GhostsOff
-  deriving (Eq, Show) 
-
-data Player = 
-  Player {
-    location :: Point,
-    path :: (Destination, [Track]),
-    currDirection :: Direction, 
-    nextDirection :: Direction,
-    drawP :: Player -> Picture,
-    updateP :: Player -> Board -> Player
-  }
-  
-
+import Data
 
 updateBoard :: Board -> Player -> Board
 updateBoard b p = 
@@ -73,9 +12,9 @@ updateBoard b p =
 
 -- terribly inefficient, poorly organized, this would be better encapsed in player some how...but idk yet
 updateCollectibles :: Board -> Player -> Board 
-updateCollectibles (Board ts ps cs l s) (Player loc _ _ _ _ _) 
-  | length filteredColls < length cs = Board ts ps (Eaten loc : filteredColls) l (s + updateScore (findColl loc cs))
-  | otherwise = Board ts ps cs l s
+updateCollectibles (Board ts ps cs l s d u) (Player loc _ _ _ _ _) 
+  | length filteredColls < length cs = Board ts ps (Eaten loc : filteredColls) l (s + updateScore (findColl loc cs)) d u
+  | otherwise = Board ts ps cs l s d u
   where
     filteredColls = filter (\c -> deconCollLoc c /= loc) cs
 
@@ -155,10 +94,10 @@ genTracks dir start end
 
 
 getPivot :: Point -> Board -> Maybe Pivot
-getPivot _ (Board _ [] _ _ _) = Nothing
-getPivot point (Board ts ((Pivot pt ns):ps) cs l s)
+getPivot _ (Board _ [] _ _ _ _ _) = Nothing
+getPivot point (Board ts ((Pivot pt ns):ps) cs l s d u)
   | point == pt = Just (Pivot pt ns)
-  | otherwise = getPivot point (Board ts ps cs l s)
+  | otherwise = getPivot point (Board ts ps cs l s d u)
 
 {-
 ------------------------------------------------------------
@@ -197,8 +136,8 @@ playerInitScore = 0
 
 genLevel :: Int -> Board
 genLevel lvlNum 
-  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore 
-  | otherwise = Board [] [] [] 0 0
+  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore drawBoard updateBoard
+  | otherwise = Board [] [] [] 0 0 drawBoard updateBoard
 
 getTracks :: Maybe Pivot -> Direction -> Neighbor
 getTracks Nothing _ = Null
@@ -223,6 +162,58 @@ deconDestination (Neighbor dest _) = dest
 
 deconTracks :: Neighbor -> [Track]
 deconTracks (Neighbor _ tracks) = tracks
+
+{-
+------------------------------------------------------------
+DRAWING FUNCTIONS
+------------------------------------------------------------
+-}
+
+drawBoard :: Board -> [Picture]
+drawBoard (Board ts ps cs l s d u) = drawScore s : drawLives l :  (drawGrid ts ++ drawCollectibles cs)
+
+drawGrid :: [Tile] -> [Picture] -- todo: change these to tail recursion
+drawGrid  [] = [] 
+drawGrid (t:ts) = drawTile t : drawBorder t : drawGrid ts
+
+drawCollectibles :: [Collectible] -> [Picture]
+drawCollectibles = map drawCollectible
+
+drawCollectible :: Collectible -> Picture
+drawCollectible (Eaten _) = Blank
+drawCollectible (Collectible _ _ c (x, y)) = color c (translate x y (thickCircle 5 10))
+
+drawLives :: Int -> Picture
+drawLives l = scale 0.5 0.5 (translate (-1000) 800 (Text ("Lives: " ++ show l)))
+
+drawScore :: Int -> Picture
+drawScore s = scale 0.5 0.5 (translate (-1000) 600 (Text ("Score: " ++ show s)))
+
+drawTile :: Tile -> Picture
+drawTile (Tile c (Boundary bottom top left right)) = 
+  color c (Polygon [(left, top), (right, top), (right, bottom), (left, bottom)])
+
+drawBorder :: Tile -> Picture
+drawBorder (Tile _ (Boundary bottom top left right)) = 
+  color black (Line [(left, top), (right, top), (right, bottom), (left, bottom)])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 -- getTopRightCors :: [Point]
 -- getTopRightCors = [Point (x, y) | x <- [1..(getLength)], y <- [1..(getHeight)]]

@@ -3,6 +3,7 @@ module Player where
 
 import Brillo
 import Board
+import Data
 
 
 
@@ -10,19 +11,27 @@ import Board
 genPlayer :: Player 
 genPlayer = Player playerStartPoint (Destination playerStartPoint, []) NONE NONE drawPlayer updatePlayer
 
+{-
+------------------------------------------------------------
+DRAW FUNCTIONS
+------------------------------------------------------------
+-}
+
 drawPlayer :: Player -> Picture
 drawPlayer (Player (x, y) _ _ _ _ _) = color yellow (translate x y (thickCircle 10 20))
 
 {-
-this is called every frame; todo:
-(1) change the position
+------------------------------------------------------------
+UPDATE FUNCTIONS
+------------------------------------------------------------
 -}
+
 updatePlayer :: Player -> Board -> Player
 updatePlayer = movePlayer
 
 {-
 ------------------------------------------------------------
-MOVEMENT FUNCTIONS
+PLAYER MOVEMENT FUNCTIONS
 ------------------------------------------------------------
 -}
 

@@ -5,6 +5,7 @@ import Brillo.Interface.IO.Game
 import Board
 import Ghost
 import Player
+import Data
 
 
 -- functions in order: draw, update, handle (d u h)
@@ -66,6 +67,10 @@ handleMain (EventKey (SpecialKey KeyLeft) Down _ _) w = queueMove w LEFT
 handleMain (EventKey (SpecialKey KeyRight) Down _ _) w = queueMove w RIGHT
 handleMain _ w = w
 
+queueMove :: World -> Direction -> World -- move t player?
+queueMove (MainGameWorld b (Player l path curr _ dp up) gs d u h) dir = MainGameWorld b (Player l path curr dir dp up) gs d u h
+queueMove w _ = w
+
 {-
 ------------------------------------------------------------
 TITLE SCREEN FUNCTIONS
@@ -83,15 +88,14 @@ handleTitle :: Event -> World -> World
 handleTitle (EventKey (Char 'g') Down _ _) w = getLevel1
 handleTitle _ w = w
 
-
-
-
-queueMove :: World -> Direction -> World
-queueMove (MainGameWorld b (Player l path curr _ dp up) gs d u h) dir = MainGameWorld b (Player l path curr dir dp up) gs d u h
-queueMove w _ = w
+{-
+------------------------------------------------------------
+DISPLAY FUNCTIONS
+------------------------------------------------------------
+-}
 
 getLevel1 :: World
-getLevel1 = MainGameWorld (genLevel 1) genPlayer [] drawMain updateMain handleMain
+getLevel1 = MainGameWorld (genLevel 1) genPlayer genGhosts drawMain updateMain handleMain
 
 getTitle :: World 
 getTitle = TitleScreen drawTitle updateTitle handleTitle
@@ -100,39 +104,7 @@ window :: Display
 window = InWindow "HaskMan" (1050, 1050) (0, 0)
 
 
-{-
-------------------------------------------------------------
-DRAWING FUNCTIONS
-------------------------------------------------------------
--}
 
-drawBoard :: Board -> [Picture]
-drawBoard (Board ts ps cs l s) = drawScore s : drawLives l :  (drawGrid ts ++ drawCollectibles cs)
-
-drawGrid :: [Tile] -> [Picture] -- todo: change these to tail recursion
-drawGrid  [] = [] 
-drawGrid (t:ts) = drawTile t : drawBorder t : drawGrid ts
-
-drawCollectibles :: [Collectible] -> [Picture]
-drawCollectibles = map drawCollectible
-
-drawCollectible :: Collectible -> Picture
-drawCollectible (Eaten _) = Blank
-drawCollectible (Collectible _ _ c (x, y)) = color c (translate x y (thickCircle 5 10))
-
-drawLives :: Int -> Picture
-drawLives l = scale 0.5 0.5 (translate (-1000) 800 (Text ("Lives: " ++ show l)))
-
-drawScore :: Int -> Picture
-drawScore s = scale 0.5 0.5 (translate (-1000) 600 (Text ("Score: " ++ show s)))
-
-drawTile :: Tile -> Picture
-drawTile (Tile c (Boundary bottom top left right)) = 
-  color c (Polygon [(left, top), (right, top), (right, bottom), (left, bottom)])
-
-drawBorder :: Tile -> Picture
-drawBorder (Tile _ (Boundary bottom top left right)) = 
-  color black (Line [(left, top), (right, top), (right, bottom), (left, bottom)])
 
 
 
