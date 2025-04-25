@@ -56,7 +56,7 @@ drawMain (MainGameWorld b p gs _ _ _) = Pictures (drawBoard b ++ (drawPlayer p :
 drawMain _ = Blank
 
 updateMain :: Float -> World -> World 
-updateMain _ (MainGameWorld b p gs d u h) = MainGameWorld (updateBoard b p) (updatePlayer p b) (updateGhosts gs b) d u h
+updateMain _ (MainGameWorld b p gs d u h) = MainGameWorld (updateBoard b p gs) (updatePlayer p b) (updateGhosts gs b) d u h
 updateMain _ w = w
 
 handleMain :: Event -> World -> World
@@ -68,7 +68,7 @@ handleMain (EventKey (SpecialKey KeyRight) Down _ _) w = queueMove w RIGHT
 handleMain _ w = w
 
 queueMove :: World -> Direction -> World -- move t player?
-queueMove (MainGameWorld b (Player l path curr _ dp up) gs d u h) dir = MainGameWorld b (Player l path curr dir dp up) gs d u h
+queueMove (MainGameWorld b (Player l path curr _ dp up coll) gs d u h) dir = MainGameWorld b (Player l path curr dir dp up coll) gs d u h
 queueMove w _ = w
 
 {-

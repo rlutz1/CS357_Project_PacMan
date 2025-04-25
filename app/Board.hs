@@ -3,16 +3,34 @@ module Board where
 import Brillo
 import Data
 
-updateBoard :: Board -> Player -> Board
-updateBoard b p = 
+updateBoard :: Board -> Player -> [Ghost] -> Board
+updateBoard b p gs = 
   do
-    updateCollectibles b p
+    checkCollision (updateCollectibles b p) p gs
 
 
+checkCollision :: Board -> Player -> [Ghost] -> Board
+checkCollision b p [] = b
+checkCollision 
+  (Board ts ps cs lives s dB uB)
+  (Player locP desP currP nextP dP uP coll) 
+  ((Ghost locG desG currG nextG dG uG):gs)
+    | coll = if collisionDetected locP locG then chugBeer (Board ts ps cs lives s dB uB) else checkCollision (Board ts ps cs lives s dB uB) (Player locP desP currP nextP dP uP coll) gs
+    | otherwise = Board ts ps cs lives s dB uB
+ 
+collisionDetected :: Point -> Point -> Bool
+collisionDetected (x1, y1) (x2, y2) -- = (abs x2 - abs x1 < 40 && abs x2 - abs x1 > -40) || (abs y2 - abs y1 < 40 && abs y2 - abs y1 > -40)
+  | abs x2 > abs x1 = abs x2 - abs x1 < 40
+  | abs y2 > abs y1 = abs y2 - abs y1 < 40
+  | abs x2 < abs x1 = abs x1 - abs x2 < 40
+  | abs y2 < abs y1 = abs y1 - abs y2 < 40
+  | otherwise = False
+chugBeer :: Board -> Board
+chugBeer (Board ts ps cs lives s dB uB) = Board ts ps cs (lives - 1) s dB uB
 
 -- terribly inefficient, poorly organized, this would be better encapsed in player some how...but idk yet
 updateCollectibles :: Board -> Player -> Board 
-updateCollectibles (Board ts ps cs l s d u) (Player loc _ _ _ _ _) 
+updateCollectibles (Board ts ps cs l s d u) (Player loc _ _ _ _ _ _) 
   | length filteredColls < length cs = Board ts ps (Eaten loc : filteredColls) l (s + updateScore (findColl loc cs)) d u
   | otherwise = Board ts ps cs l s d u
   where

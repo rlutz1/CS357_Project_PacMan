@@ -15,6 +15,8 @@ pacman game in haskell!
 
 + need to give the ghosts like 3 frames before they start moving would be nice
 
++ separate out the radius or width of everything so collision detection is malleable to size changes
+
 + move players and ghosts to within board? or is it overkill; it'll likely be helpful for the ghost ai
 
 ## base requirements
@@ -39,3 +41,18 @@ Prompt user to retry or go back to main menu.
 + Include at least 3 different levels to load up with unique configurations.
 + Implement a simple main menu with buttons to load up different levels to enable a
 nice game flow.
+
+## thots
++ on the collision detection, we need
+  + to be able to see if a boy is within...
+    + radius of can (or width) is 20, so we need to see if the 20 radius/width boys are within
+    + it's center to center so
+    + absolute values bc negative coordinates lol
+    + if |xGhost| - |xplayer| < 40 or > -40 
+    OR
+      if |yGhost| - |yplayer| < 40 or > -40 
+    + then that counts as a collision
+  + if this test passes with ANY of the ghosts and a player, then we need to update the board lives counter
+    + if we hit zero, game over
+    + if not, we just need to reset everyone back at their start points, but colls and score stays the same.
+ 

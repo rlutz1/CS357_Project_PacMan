@@ -10,7 +10,7 @@ data Board =
     lives :: Int, -- for displaying lives
     score :: Int, -- for displaying the current score
     drawB :: Board -> [Picture],
-    updateB :: Board -> Player -> Board
+    updateB :: Board -> Player -> [Ghost] -> Board
   }
   -- deriving (Eq, Show) 
 
@@ -62,7 +62,8 @@ data Player =
     currDirectionP :: Direction, 
     nextDirectionP :: Direction,
     drawP :: Player -> Picture,
-    updateP :: Player -> Board -> Player
+    updateP :: Player -> Board -> Player,
+    collDetection :: Bool
   }
   
 data Ghost = 

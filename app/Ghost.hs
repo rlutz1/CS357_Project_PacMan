@@ -101,8 +101,8 @@ GHOST MOVEMENT FUNCTIONS
 -}
 
 -- i may not need directions for the ghosts
+-- below are where the ai decision making movesments should live
 
--- ai movement decisions for hankerooski
 moveHank :: Ghost -> Board -> Ghost
 moveHank (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
 moveHank (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
