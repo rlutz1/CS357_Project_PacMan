@@ -214,7 +214,7 @@ billStartPoint = (325, 225)
 
 genLevel :: Int -> Board
 genLevel lvlNum 
-  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore drawBoard updateBoard genPlayer genGhosts False
+  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore drawBoard updateBoard genPlayer [genBill] False
   | otherwise = Board [] [] [] 0 0 drawBoard updateBoard genPlayer genGhosts False
 
 getTracks :: Maybe Pivot -> Direction -> Neighbor
@@ -428,17 +428,33 @@ moveBoomhauer (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr
 
 moveBill :: Ghost -> Board -> Ghost
 moveBill (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
-moveBill (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
-  where 
-    nextPiv = getPivot point b
-    up = getTracks nextPiv UP
-    down = getTracks nextPiv DOWN
-    left = getTracks nextPiv LEFT
-    right = getTracks nextPiv RIGHT
-    validDirs = dumbShuffle (filter (/= Null) [up,  left, down, right ])
+moveBill (Ghost loc (Destination point, [t]) curr next d u) b = 
+  Ghost t (Destination  (getPlayerLocation b), dfsRefill b (getPlayerLocation b) loc (getPiv (getPivot loc b)) [] []) curr next d u
 moveBill (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
 
+getPlayerLocation :: Board -> Point
+getPlayerLocation (Board ts ps cs l s dB uB (Player loc _ _ _ _ _ _) gs gOver) = loc
 
+
+dfsRefill :: Board -> Point -> Point -> Pivot -> [Point] -> [Track] -> [Track]
+dfsRefill b dest curr (Pivot pt (up, down, left, right)) visited path
+  | dest == curr || null validNeighbors  = path
+  | otherwise = 
+      dfsRefill b dest (getNeighborPoint (head validNeighbors)) (getPiv (getPivot (getNeighborPoint (head validNeighbors)) b)) (pt:visited) (path ++ (getNeighborTrack (head validNeighbors)))
+  where 
+    validNeighbors = filter (\(Neighbor (Destination pt) _) -> notElem pt visited) (filter (/= Null) [up,  left, down, right])
+    
+getNeighborPoint :: Neighbor -> Point
+getNeighborPoint (Neighbor (Destination pt) _) = pt
+getNeighborPoint _ = error "don't give this null, dummy"
+
+getNeighborTrack :: Neighbor -> [Track]
+getNeighborTrack (Neighbor _ track) = track
+getNeighborTrack _ = error "don't give this null, dummy"
+
+getPiv :: Maybe Pivot -> Pivot
+getPiv (Just pv) = pv
+getPiv _ = error "don't give nothing please"  
 
 dumbShuffle :: [a] -> [a]
 dumbShuffle xs = tail r ++ [head r]
