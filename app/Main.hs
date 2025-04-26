@@ -52,13 +52,13 @@ MAIN GAME FUNCTIONS
 -}
 
 drawMain :: World -> Picture
-drawMain (MainGameWorld b _ _ _) = 
-  Pictures (drawBoard b) -- tiles, collectibles, then player, ghosts
+drawMain (MainGameWorld (Board ts ps cs ls s dB uB p gs) _ _ _) = 
+  Pictures (dB (Board ts ps cs ls s dB uB p gs)) -- tiles, collectibles, then player, ghosts
 drawMain _ = Blank
 
 updateMain :: Float -> World -> World 
-updateMain _ (MainGameWorld b d u h) = 
-  MainGameWorld (updateBoard b) d u h
+updateMain _ (MainGameWorld (Board ts ps cs ls s dB uB p gs) d u h) = 
+  MainGameWorld (uB (Board ts ps cs ls s dB uB p gs)) d u h
 updateMain _ w = w
 
 handleMain :: Event -> World -> World
