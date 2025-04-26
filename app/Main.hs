@@ -11,7 +11,7 @@ import Data
 -- functions in order: draw, update, handle (d u h)
 data World = 
     TitleScreen (World -> Picture) (Float -> World -> World) (Event -> World -> World)
-  | MainGameWorld Board Player [Ghost] (World -> Picture) (Float -> World -> World) (Event -> World -> World)
+  | MainGameWorld Board (World -> Picture) (Float -> World -> World) (Event -> World -> World)
 
 
 
@@ -30,18 +30,18 @@ main =
 
 draw :: World -> Picture 
 draw (TitleScreen d u h) = d (TitleScreen d u h)
-draw (MainGameWorld b p gs d u h) = d (MainGameWorld b p gs d u h)
+draw (MainGameWorld b d u h) = d (MainGameWorld b d u h)
 draw _ = Blank
 
 update :: Float -> World -> World
 update t (TitleScreen d u h) = u t (TitleScreen d u h)
-update t (MainGameWorld b p gs d u h) = u t (MainGameWorld b p gs d u h)
+update t (MainGameWorld b d u h) = u t (MainGameWorld b d u h)
 update _ w = w
 
 
 handle :: Event -> World -> World
 handle e (TitleScreen d u h) = h e (TitleScreen d u h)
-handle e (MainGameWorld b p gs d u h) = h e (MainGameWorld b p gs d u h)
+handle e (MainGameWorld b d u h) = h e (MainGameWorld b d u h)
 handle _ w = w
 
 
@@ -52,11 +52,13 @@ MAIN GAME FUNCTIONS
 -}
 
 drawMain :: World -> Picture
-drawMain (MainGameWorld b p gs _ _ _) = Pictures (drawBoard b ++ (drawPlayer p : drawGhosts gs)) -- tiles, collectibles, then player, ghosts
+drawMain (MainGameWorld b _ _ _) = 
+  Pictures (drawBoard b) -- tiles, collectibles, then player, ghosts
 drawMain _ = Blank
 
 updateMain :: Float -> World -> World 
-updateMain _ (MainGameWorld b p gs d u h) = MainGameWorld (updateBoard b p gs) (updatePlayer p b) (updateGhosts gs b) d u h
+updateMain _ (MainGameWorld b d u h) = 
+  MainGameWorld (updateBoard b) d u h
 updateMain _ w = w
 
 handleMain :: Event -> World -> World
@@ -68,7 +70,8 @@ handleMain (EventKey (SpecialKey KeyRight) Down _ _) w = queueMove w RIGHT
 handleMain _ w = w
 
 queueMove :: World -> Direction -> World -- move t player?
-queueMove (MainGameWorld b (Player l path curr _ dp up coll) gs d u h) dir = MainGameWorld b (Player l path curr dir dp up coll) gs d u h
+queueMove (MainGameWorld (Board ts ps cs ls s dB uB (Player l path curr _ dp up coll) gs) d u h) dir =
+   MainGameWorld (Board ts ps cs ls s dB uB (Player l path curr dir dp up coll) gs) d u h
 queueMove w _ = w
 
 {-
@@ -95,7 +98,7 @@ DISPLAY FUNCTIONS
 -}
 
 getLevel1 :: World
-getLevel1 = MainGameWorld (genLevel 1) genPlayer genGhosts drawMain updateMain handleMain
+getLevel1 = MainGameWorld (genLevel 1) drawMain updateMain handleMain
 
 getTitle :: World 
 getTitle = TitleScreen drawTitle updateTitle handleTitle

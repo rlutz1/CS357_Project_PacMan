@@ -2,48 +2,49 @@ module Board where
 
 import Brillo
 import Data
+-- import Ghost
+-- import Player
 
-updateBoard :: Board -> Player -> [Ghost] -> Board
-updateBoard b p gs = 
+updateBoard :: Board -> Board
+updateBoard (Board ts ps cs ls s dB uB p gs) = 
   do
-    checkCollision (updateCollectibles b p) p gs
+    let updatedP = updatePlayer p (Board ts ps cs ls s dB uB p gs)
+    let updatedGs = updateGhosts gs (Board ts ps cs ls s dB uB p gs)
+    checkCollision (updateCollectibles (Board ts ps cs ls s dB uB updatedP updatedGs)) updatedP updatedGs
+
 
 
 checkCollision :: Board -> Player -> [Ghost] -> Board
 checkCollision b p [] = b
 checkCollision 
-  (Board ts ps cs lives s dB uB)
+  (Board ts ps cs lives s dB uB op ogs)
   (Player locP desP currP nextP dP uP coll) 
   ((Ghost locG desG currG nextG dG uG):gs)
-    | coll = if collisionDetected locP locG then chugBeer (Board ts ps cs lives s dB uB) else checkCollision (Board ts ps cs lives s dB uB) (Player locP desP currP nextP dP uP coll) gs
-    | otherwise = Board ts ps cs lives s dB uB
+    | coll = if collisionDetected locP locG then chugBeer (Board ts ps cs lives s dB uB op ogs) else checkCollision (Board ts ps cs lives s dB uB op ogs) (Player locP desP currP nextP dP uP coll) gs
+    | otherwise = Board ts ps cs lives s dB uB op ogs
  
+chugBeer :: Board -> Board
+chugBeer (Board ts ps cs lives s dB uB op ogs) = Board ts ps cs (lives - 1) s dB uB genPlayer genGhosts
+
 collisionDetected :: Point -> Point -> Bool
 collisionDetected (x1, y1) (x2, y2)
   | sameCol (x1, y1) (x2, y2) = max y1 y2 - min y1 y2 < 40
   | sameRow (x1, y1) (x2, y2) = max x1 x2 - min x1 x2 < 40
   | otherwise = False
   
--- same x coords!!
 sameCol :: Point -> Point -> Bool
 sameCol (x1, _) (x2, _) = x1 == x2
 
 sameRow :: Point -> Point -> Bool
 sameRow (_, y1) (_, y2) = y1 == y2
-  -- | abs x2 > abs x1 = abs x2 - abs x1 < 40
-  -- | abs y2 > abs y1 = abs y2 - abs y1 < 40
-  -- | abs x2 < abs x1 = abs x1 - abs x2 < 40
-  -- | abs y2 < abs y1 = abs y1 - abs y2 < 40
-  -- | otherwise = False
   
-chugBeer :: Board -> Board
-chugBeer (Board ts ps cs lives s dB uB) = Board ts ps cs (lives - 1) s dB uB
+
 
 -- terribly inefficient, poorly organized, this would be better encapsed in player some how...but idk yet
-updateCollectibles :: Board -> Player -> Board 
-updateCollectibles (Board ts ps cs l s d u) (Player loc _ _ _ _ _ _) 
-  | length filteredColls < length cs = Board ts ps (Eaten loc : filteredColls) l (s + updateScore (findColl loc cs)) d u
-  | otherwise = Board ts ps cs l s d u
+updateCollectibles :: Board -> Board 
+updateCollectibles (Board ts ps cs l s d u (Player loc dest curr next dp up coll) gs) 
+  | length filteredColls < length cs = Board ts ps (Eaten loc : filteredColls) l (s + updateScore (findColl loc cs)) d u (Player loc dest curr next dp up coll) gs
+  | otherwise = Board ts ps cs l s d u (Player loc dest curr next dp up coll) gs
   where
     filteredColls = filter (\c -> deconCollLoc c /= loc) cs
 
@@ -123,10 +124,13 @@ genTracks dir start end
 
 
 getPivot :: Point -> Board -> Maybe Pivot
-getPivot _ (Board _ [] _ _ _ _ _) = Nothing
-getPivot point (Board ts ((Pivot pt ns):ps) cs l s d u)
+getPivot _ (Board _ [] _ _ _ _ _ _ _) = Nothing
+getPivot point (Board ts ((Pivot pt ns):ps) cs l s d u p gs)
   | point == pt = Just (Pivot pt ns)
-  | otherwise = getPivot point (Board ts ps cs l s d u)
+  | otherwise = getPivot point (Board ts ps cs l s d u p gs) 
+
+genPlayer :: Player 
+genPlayer = Player playerStartPoint (Destination playerStartPoint, []) NONE NONE drawPlayer updatePlayer True
 
 {-
 ------------------------------------------------------------
@@ -177,8 +181,8 @@ billStartPoint = (325, 225)
 
 genLevel :: Int -> Board
 genLevel lvlNum 
-  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore drawBoard updateBoard
-  | otherwise = Board [] [] [] 0 0 drawBoard updateBoard
+  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore drawBoard updateBoard genPlayer genGhosts
+  | otherwise = Board [] [] [] 0 0 drawBoard updateBoard genPlayer genGhosts
 
 getTracks :: Maybe Pivot -> Direction -> Neighbor
 getTracks Nothing _ = Null
@@ -210,8 +214,9 @@ DRAWING FUNCTIONS
 ------------------------------------------------------------
 -}
 
+-- todo: move drawplayer and draw ghosts here?
 drawBoard :: Board -> [Picture]
-drawBoard (Board ts ps cs l s d u) = drawScore s : drawLives l :  (drawGrid ts ++ drawCollectibles cs)
+drawBoard (Board ts ps cs l s d u p gs) = drawScore s : drawLives l :  (drawGrid ts ++ drawCollectibles cs) ++ (drawPlayer p : drawGhosts gs)
 
 drawGrid :: [Tile] -> [Picture] -- todo: change these to tail recursion
 drawGrid  [] = [] 
@@ -238,6 +243,40 @@ drawBorder :: Tile -> Picture
 drawBorder (Tile _ (Boundary bottom top left right)) = 
   color black (Line [(left, top), (right, top), (right, bottom), (left, bottom)])
 
+drawPlayer :: Player -> Picture
+drawPlayer (Player (x, y) _ _ _ _ _ _) = color yellow (translate x y (thickCircle 10 20))
+
+
+drawGhosts :: [Ghost] -> [Picture]
+drawGhosts gs = go [] gs--foldr go [] gs --go gs board []
+  where 
+    go acc [] = acc
+    go acc ((Ghost loc path curr next d u):gs) = go (d (Ghost loc path curr next d u) : acc) gs 
+
+-- note: get colord for make color by x / 255. friggin clamped [0, 1] not [0, 255] lol
+-- rgb(137, 61, 2)
+drawHank :: Ghost -> Picture
+drawHank (Ghost (x, y) _ _ _ _ _) = color c (translate x y (thickCircle 10 20))
+  where 
+    c = makeColor 0.537 0.239 0.008 1
+
+-- rgb(211, 40, 10) 
+drawDale :: Ghost -> Picture
+drawDale (Ghost (x, y) _ _ _ _ _) = color c (translate x y (thickCircle 10 20))
+  where 
+    c = makeColor 0.827 0.157 0.039 1
+--rgba(255, 255, 255, 0)
+-- rgb(225, 230, 144)
+drawBoomhauer :: Ghost -> Picture
+drawBoomhauer (Ghost (x, y) _ _ _ _ _) = color c (translate x y (thickCircle 10 20))
+  where 
+    c = makeColor 0.882 0.901 0.565 1
+
+-- rgb(206, 167, 120) 
+drawBill :: Ghost -> Picture
+drawBill (Ghost (x, y) _ _ _ _ _) = color c (translate x y (thickCircle 10 20))
+  where
+    c = makeColor 0.808 0.655 0.471 1 
 
 
 
@@ -247,10 +286,195 @@ drawBorder (Tile _ (Boundary bottom top left right)) =
 
 
 
+-- data Ghost = 
+--   Ghost {
+--     locationG :: Point,
+--     pathG :: (Destination, [Track]),
+--     currDirectionG :: Direction, 
+--     nextDirectionG :: Direction,
+--     drawG :: Ghost -> Picture,
+--     updateG :: Ghost -> Board -> Ghost
+--  }
+
+genGhosts :: [Ghost]
+genGhosts = [genHank, genDale, genBoomhauer, genBill]
+
+genHank :: Ghost
+genHank = Ghost hankStartPoint (Destination hankStartPoint, []) NONE NONE drawHank updateHank
+
+genDale :: Ghost
+genDale = Ghost daleStartPoint (Destination daleStartPoint, []) NONE NONE drawDale updateDale
+
+genBoomhauer :: Ghost
+genBoomhauer = Ghost boomhauerStartPoint (Destination boomhauerStartPoint, []) NONE NONE drawBoomhauer updateBoomhauer
+
+genBill :: Ghost
+genBill = Ghost billStartPoint (Destination billStartPoint, []) NONE NONE drawBill updateBill
 
 
 
 
+{-
+------------------------------------------------------------
+UPDATE FUNCTIONS
+------------------------------------------------------------
+-}
+
+updateGhosts :: [Ghost] -> Board -> [Ghost]
+updateGhosts gs board = go [] gs board--foldr go [] gs --go gs board []
+  where 
+    go acc [] _ = acc
+    go acc ((Ghost loc path curr next d u):gs) board = go (u (Ghost loc path curr next d u) board : acc) gs board
+
+updateHank :: Ghost -> Board -> Ghost
+updateHank g board = moveHank g board
+
+updateDale :: Ghost -> Board -> Ghost
+updateDale g board = moveDale g board
+
+updateBoomhauer :: Ghost -> Board -> Ghost
+updateBoomhauer g board = moveBoomhauer g board
+
+updateBill :: Ghost -> Board -> Ghost
+updateBill g board = moveBill g board
+
+{-
+------------------------------------------------------------
+DRAW FUNCTIONS
+------------------------------------------------------------
+-}
+
+
+
+
+{-
+------------------------------------------------------------
+GHOST MOVEMENT FUNCTIONS
+------------------------------------------------------------
+-}
+
+-- i may not need directions for the ghosts
+-- below are where the ai decision making movesments should live
+
+moveHank :: Ghost -> Board -> Ghost
+moveHank (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
+moveHank (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
+  where 
+    nextPiv = getPivot point b
+    up = getTracks nextPiv UP
+    down = getTracks nextPiv DOWN
+    left = getTracks nextPiv LEFT
+    right = getTracks nextPiv RIGHT
+    validDirs = dumbShuffle (filter (/= Null) [up,  left, down, right ])
+moveHank (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
+
+
+moveDale :: Ghost -> Board -> Ghost
+moveDale (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
+moveDale (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
+  where 
+    nextPiv = getPivot point b
+    up = getTracks nextPiv UP
+    down = getTracks nextPiv DOWN
+    left = getTracks nextPiv LEFT
+    right = getTracks nextPiv RIGHT
+    validDirs = dumbShuffle (filter (/= Null) [down,  left, up, right ])
+moveDale (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
+
+moveBoomhauer :: Ghost -> Board -> Ghost
+moveBoomhauer (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
+moveBoomhauer (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
+  where 
+    nextPiv = getPivot point b
+    up = getTracks nextPiv UP
+    down = getTracks nextPiv DOWN
+    left = getTracks nextPiv LEFT
+    right = getTracks nextPiv RIGHT
+    validDirs = dumbShuffle (filter (/= Null) [up,  right, down, left ])
+moveBoomhauer (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
+
+moveBill :: Ghost -> Board -> Ghost
+moveBill (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
+moveBill (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
+  where 
+    nextPiv = getPivot point b
+    up = getTracks nextPiv UP
+    down = getTracks nextPiv DOWN
+    left = getTracks nextPiv LEFT
+    right = getTracks nextPiv RIGHT
+    validDirs = dumbShuffle (filter (/= Null) [up,  left, down, right ])
+moveBill (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
+
+
+
+dumbShuffle :: [a] -> [a]
+dumbShuffle xs = tail r ++ [head r]
+  where 
+    r = reverse xs
+
+
+
+
+{-
+------------------------------------------------------------
+UPDATE FUNCTIONS
+------------------------------------------------------------
+-}
+
+updatePlayer :: Player -> Board -> Player
+updatePlayer = movePlayer
+
+{-
+------------------------------------------------------------
+PLAYER MOVEMENT FUNCTIONS
+------------------------------------------------------------
+-}
+
+
+{-
+first, if the player currdir /= nextdir, check 
+  if they're at close enough to end of their track
+    grab the pivot (via player destination) from the board, try to grab the corresponding neighbor from that pivot
+    if its null
+      instead keep trying to go the same direction as before, can't turn there
+      if that is null, stop moving -- keep same location
+want to clean this up, works well enough to continue testing, but there's def some gunk to cut out
+-}
+movePlayer :: Player -> Board -> Player
+movePlayer (Player loc (dest, []) curr next d u coll) _ = Player loc (dest, [loc]) curr next d u coll
+movePlayer (Player _ (dest, t:ts) curr next d u coll) b
+  | curr /= next && closeEnough ts = changeDir (Player t (dest, ts) curr next d u coll) b
+  | otherwise = sameDir (Player t (dest, ts) curr curr d u coll) b
+    
+-- queueTracks :: Player -> Board -> Player
+-- queueTracks (Player loc (dest, ts) curr next) b -- we are attempting oto queue up the next move
+--   | curr /= next = changeDir (Player loc (dest, ts) curr next) b 
+--   | otherwise = sameDir (Player loc (dest, ts) curr next) b 
+
+-- todo clean up
+changeDir :: Player -> Board -> Player
+changeDir (Player loc (Destination point, ts) curr next d u coll) b 
+  | nextTracks == Null = sameDir (Player loc (Destination point, ts) curr curr d u coll) b 
+  | otherwise = Player loc (deconDestination nextTracks, ts ++ deconTracks nextTracks) next next d u coll
+  where 
+    nextPiv = getPivot point b
+    nextTracks = getTracks nextPiv next
+
+
+
+-- todo clean up
+sameDir :: Player -> Board -> Player
+sameDir (Player loc (Destination point, []) curr _ d u coll) _ = Player loc (Destination point, []) curr curr d u coll
+sameDir (Player loc (Destination point, [t]) curr _ d u coll) b
+  | nextTracks == Null = Player loc (Destination point, [t]) curr curr d u coll
+  | otherwise = Player loc (deconDestination nextTracks, t :deconTracks nextTracks) curr curr d u coll
+  where 
+    nextPiv = getPivot point b
+    nextTracks = getTracks nextPiv curr
+sameDir (Player loc (Destination point, ts) curr next d u coll) _ = Player loc (Destination point, ts) curr next d u coll 
+
+closeEnough :: [a] -> Bool
+closeEnough xs = length xs <= 25
 
 
 

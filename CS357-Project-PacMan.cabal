@@ -61,7 +61,7 @@ executable CS357-Project-PacMan
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    other-modules: Board,Ghost,Player
+    other-modules: Board,Ghost,Player,Data
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
