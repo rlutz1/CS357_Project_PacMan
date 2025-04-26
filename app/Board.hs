@@ -195,7 +195,7 @@ playerStartPoint :: Point
 playerStartPoint = (-475, -475)
 
 playerInitLives :: Int
-playerInitLives = 0 -- todo: 3 for final
+playerInitLives = 3 -- todo: 3 for final
 
 playerInitScore :: Int
 playerInitScore = 0
@@ -214,7 +214,7 @@ billStartPoint = (325, 225)
 
 genLevel :: Int -> Board
 genLevel lvlNum 
-  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore drawBoard updateBoard genPlayer [] False
+  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore drawBoard updateBoard genPlayer genGhosts False
   | otherwise = Board [] [] [] 0 0 drawBoard updateBoard genPlayer genGhosts False
 
 getTracks :: Maybe Pivot -> Direction -> Neighbor
