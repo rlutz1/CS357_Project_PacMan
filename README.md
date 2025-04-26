@@ -20,6 +20,9 @@ pacman game in haskell!
 + move players and ghosts to within board? or is it overkill; it'll likely be helpful for the ghost ai
   + this may be important to be able to reset the board when collision detection is on and working
 
++ little note: should change all draw functions to rely on what i give as a function. as in, remember the gameover board logic.
++ note i could technically just give the board a function to test game over rather than a state flag. unclear if benefit
+
 ## base requirements
 
 + ~~Tile map/grid-based movement dictated by arrow keys (user input).~~

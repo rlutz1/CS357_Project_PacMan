@@ -6,34 +6,38 @@ import Data
 -- import Player
 
 updateBoard :: Board -> Board
-updateBoard (Board ts ps cs ls s dB uB p gs) = 
+updateBoard (Board ts ps cs ls s dB uB p gs gOver) = 
   do
-    let updatedP = updatePlayer p (Board ts ps cs ls s dB uB p gs)
-    let updatedGs = updateGhosts gs (Board ts ps cs ls s dB uB p gs)
-    checkCollision (updateCollectibles (Board ts ps cs ls s dB uB updatedP updatedGs)) updatedP updatedGs
+    let updatedP = updatePlayer p (Board ts ps cs ls s dB uB p gs gOver)
+    let updatedGs = updateGhosts gs (Board ts ps cs ls s dB uB p gs gOver)
+    checkCollision (updateCollectibles (Board ts ps cs ls s dB uB updatedP updatedGs gOver)) updatedP updatedGs
 
 
 
 checkCollision :: Board -> Player -> [Ghost] -> Board
 checkCollision b p [] = b
 checkCollision 
-  (Board ts ps cs lives s dB uB op ogs)
+  (Board ts ps cs lives s dB uB op ogs gOver)
   (Player locP desP currP nextP dP uP coll) 
   ((Ghost locG desG currG nextG dG uG):gs)
-    | coll = if collisionDetected locP locG then chugBeer (Board ts ps cs lives s dB uB op ogs) else checkCollision (Board ts ps cs lives s dB uB op ogs) (Player locP desP currP nextP dP uP coll) gs
-    | otherwise = Board ts ps cs lives s dB uB op ogs
+    | coll = if collisionDetected locP locG then chugBeer (Board ts ps cs lives s dB uB op ogs gOver) else checkCollision (Board ts ps cs lives s dB uB op ogs gOver) (Player locP desP currP nextP dP uP coll) gs
+    | otherwise = Board ts ps cs lives s dB uB op ogs gOver
  
 chugBeer :: Board -> Board
-chugBeer (Board ts ps cs lives s dB uB op ogs) 
-  | gameOver (lives - 1) = Board ts ps cs lives s drawGameOver id op ogs
-  | otherwise = Board ts ps cs (lives - 1) s dB uB genPlayer genGhosts
+chugBeer (Board ts ps cs lives s dB uB op ogs gOver) 
+  | checkGameOver (lives - 1) = Board ts ps cs lives s drawGameOver id op ogs True
+  | otherwise = Board ts ps cs (lives - 1) s dB uB genPlayer genGhosts gOver
 
 drawGameOver :: Board -> [Picture]
 drawGameOver b =  drawBoard b ++ drawGameOverNotification
 
+-- rgb(157, 157, 157)
 drawGameOverNotification :: [Picture]
 drawGameOverNotification = [
-  color black (rectangleSolid 500 300)
+  color (makeColor 0.616 0.616 0.616 1) (rectangleSolid 750 400),
+  scale 0.25 0.25 (translate (-300) (200) (Text "YOU FAILED!")),
+  scale 0.25 0.25 (translate (-1250) (0) (Text "You did not escape the boys in the alley."))
+
   ]
 
 collisionDetected :: Point -> Point -> Bool
@@ -48,15 +52,15 @@ sameCol (x1, _) (x2, _) = x1 == x2
 sameRow :: Point -> Point -> Bool
 sameRow (_, y1) (_, y2) = y1 == y2
   
-gameOver :: Int -> Bool
-gameOver x = x < 0
+checkGameOver :: Int -> Bool
+checkGameOver x = x < 0
 
 
 -- terribly inefficient, poorly organized, this would be better encapsed in player some how...but idk yet
 updateCollectibles :: Board -> Board 
-updateCollectibles (Board ts ps cs l s d u (Player loc dest curr next dp up coll) gs) 
-  | length filteredColls < length cs = Board ts ps (Eaten loc : filteredColls) l (s + updateScore (findColl loc cs)) d u (Player loc dest curr next dp up coll) gs
-  | otherwise = Board ts ps cs l s d u (Player loc dest curr next dp up coll) gs
+updateCollectibles (Board ts ps cs l s d u (Player loc dest curr next dp up coll) gs gOver) 
+  | length filteredColls < length cs = Board ts ps (Eaten loc : filteredColls) l (s + updateScore (findColl loc cs)) d u (Player loc dest curr next dp up coll) gs gOver
+  | otherwise = Board ts ps cs l s d u (Player loc dest curr next dp up coll) gs gOver
   where
     filteredColls = filter (\c -> deconCollLoc c /= loc) cs
 
@@ -136,10 +140,10 @@ genTracks dir start end
 
 
 getPivot :: Point -> Board -> Maybe Pivot
-getPivot _ (Board _ [] _ _ _ _ _ _ _) = Nothing
-getPivot point (Board ts ((Pivot pt ns):ps) cs l s d u p gs)
+getPivot _ (Board _ [] _ _ _ _ _ _ _ _) = Nothing
+getPivot point (Board ts ((Pivot pt ns):ps) cs l s d u p gs gOver)
   | point == pt = Just (Pivot pt ns)
-  | otherwise = getPivot point (Board ts ps cs l s d u p gs) 
+  | otherwise = getPivot point (Board ts ps cs l s d u p gs gOver) 
 
 genPlayer :: Player 
 genPlayer = Player playerStartPoint (Destination playerStartPoint, []) NONE NONE drawPlayer updatePlayer True
@@ -193,8 +197,8 @@ billStartPoint = (325, 225)
 
 genLevel :: Int -> Board
 genLevel lvlNum 
-  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore drawBoard updateBoard genPlayer genGhosts
-  | otherwise = Board [] [] [] 0 0 drawBoard updateBoard genPlayer genGhosts
+  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore drawBoard updateBoard genPlayer genGhosts False
+  | otherwise = Board [] [] [] 0 0 drawBoard updateBoard genPlayer genGhosts False
 
 getTracks :: Maybe Pivot -> Direction -> Neighbor
 getTracks Nothing _ = Null
@@ -228,7 +232,7 @@ DRAWING FUNCTIONS
 
 -- todo: move drawplayer and draw ghosts here?
 drawBoard :: Board -> [Picture]
-drawBoard (Board ts ps cs l s d u p gs) = drawScore s : drawLives l :  (drawGrid ts ++ drawCollectibles cs) ++ (drawPlayer p : drawGhosts gs)
+drawBoard (Board ts ps cs l s d u p gs gOver) = drawScore s : drawLives l :  (drawGrid ts ++ drawCollectibles cs) ++ (drawPlayer p : drawGhosts gs)
 
 drawGrid :: [Tile] -> [Picture] -- todo: change these to tail recursion
 drawGrid  [] = [] 

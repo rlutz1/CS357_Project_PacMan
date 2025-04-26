@@ -11,8 +11,10 @@ data Board =
     score :: Int, -- for displaying the current score
     drawB :: Board -> [Picture],
     updateB :: Board -> Board, 
+    -- handleB :: Event, -- MAYBE
     player :: Player,
-    ghosts :: [Ghost]
+    ghosts :: [Ghost],
+    gameOver :: Bool
   }
   -- deriving (Eq, Show) 
 
