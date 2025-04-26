@@ -19,12 +19,23 @@ checkCollision
     | otherwise = Board ts ps cs lives s dB uB
  
 collisionDetected :: Point -> Point -> Bool
-collisionDetected (x1, y1) (x2, y2) -- = (abs x2 - abs x1 < 40 && abs x2 - abs x1 > -40) || (abs y2 - abs y1 < 40 && abs y2 - abs y1 > -40)
-  | abs x2 > abs x1 = abs x2 - abs x1 < 40
-  | abs y2 > abs y1 = abs y2 - abs y1 < 40
-  | abs x2 < abs x1 = abs x1 - abs x2 < 40
-  | abs y2 < abs y1 = abs y1 - abs y2 < 40
+collisionDetected (x1, y1) (x2, y2)
+  | sameCol (x1, y1) (x2, y2) = max y1 y2 - min y1 y2 < 40
+  | sameRow (x1, y1) (x2, y2) = max x1 x2 - min x1 x2 < 40
   | otherwise = False
+  
+-- same x coords!!
+sameCol :: Point -> Point -> Bool
+sameCol (x1, _) (x2, _) = x1 == x2
+
+sameRow :: Point -> Point -> Bool
+sameRow (_, y1) (_, y2) = y1 == y2
+  -- | abs x2 > abs x1 = abs x2 - abs x1 < 40
+  -- | abs y2 > abs y1 = abs y2 - abs y1 < 40
+  -- | abs x2 < abs x1 = abs x1 - abs x2 < 40
+  -- | abs y2 < abs y1 = abs y1 - abs y2 < 40
+  -- | otherwise = False
+  
 chugBeer :: Board -> Board
 chugBeer (Board ts ps cs lives s dB uB) = Board ts ps cs (lives - 1) s dB uB
 

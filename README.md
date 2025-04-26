@@ -18,6 +18,7 @@ pacman game in haskell!
 + separate out the radius or width of everything so collision detection is malleable to size changes
 
 + move players and ghosts to within board? or is it overkill; it'll likely be helpful for the ghost ai
+  + this may be important to be able to reset the board when collision detection is on and working
 
 ## base requirements
 
