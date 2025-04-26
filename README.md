@@ -23,6 +23,8 @@ pacman game in haskell!
 + little note: should change all draw functions to rely on what i give as a function. as in, remember the gameover board logic.
 + note i could technically just give the board a function to test game over rather than a state flag. unclear if benefit
 
++ change the damn collectibles thing to just remove a collectible from the list if eaten. no more eaten crap, it'll make everything far more efficient there.
+
 ## base requirements
 
 + ~~Tile map/grid-based movement dictated by arrow keys (user input).~~
