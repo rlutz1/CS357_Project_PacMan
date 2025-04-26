@@ -35,9 +35,9 @@ drawGameOver b =  drawBoard b ++ drawGameOverNotification
 drawGameOverNotification :: [Picture]
 drawGameOverNotification = [
   color (makeColor 0.616 0.616 0.616 1) (rectangleSolid 750 400),
-  scale 0.25 0.25 (translate (-300) (200) (Text "YOU FAILED!")),
-  scale 0.25 0.25 (translate (-1250) (0) (Text "You did not escape the boys in the alley."))
-
+  scale 0.25 0.25 (translate (-400) (200) (Text "YOU FAILED!")),
+  scale 0.25 0.25 (translate (-1250) (0) (Text "You did not escape the boys in the alley.")),
+  scale 0.25 0.25 (translate (-800) (-200) (Text "Press G to back to menu"))
   ]
 
 collisionDetected :: Point -> Point -> Bool
@@ -60,9 +60,26 @@ checkGameOver x = x < 0
 updateCollectibles :: Board -> Board 
 updateCollectibles (Board ts ps cs l s d u (Player loc dest curr next dp up coll) gs gOver) 
   | length filteredColls < length cs = Board ts ps (Eaten loc : filteredColls) l (s + updateScore (findColl loc cs)) d u (Player loc dest curr next dp up coll) gs gOver
-  | otherwise = Board ts ps cs l s d u (Player loc dest curr next dp up coll) gs gOver
+  | otherwise = if allEaten cs then Board ts ps cs l s drawGameWon id (Player loc dest curr next dp up coll) gs True else Board ts ps cs l s d u (Player loc dest curr next dp up coll) gs gOver
   where
     filteredColls = filter (\c -> deconCollLoc c /= loc) cs
+
+drawGameWon :: Board -> [Picture]
+drawGameWon b =  drawBoard b ++ drawGameWonNotification
+
+-- rgb(157, 157, 157)
+drawGameWonNotification :: [Picture]
+drawGameWonNotification = [
+  color (makeColor 0.616 0.616 0.616 1) (rectangleSolid 750 400),
+  scale 0.25 0.25 (translate (-350) (200) (Text "YOU WON!")),
+  scale 0.25 0.25 (translate (-1250) (0) (Text "You did not escaped the boys in the alley.")),
+  scale 0.25 0.25 (translate (-800) (-200) (Text "Press G to back to menu"))
+  ]
+
+allEaten :: [Collectible] -> Bool
+allEaten [] = True
+allEaten (Eaten _:cs) = allEaten cs  
+allEaten (Collectible _ _ _ _:cs) = False
 
 updateScore :: Maybe Collectible -> Int
 updateScore Nothing = 0
@@ -197,7 +214,7 @@ billStartPoint = (325, 225)
 
 genLevel :: Int -> Board
 genLevel lvlNum 
-  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore drawBoard updateBoard genPlayer genGhosts False
+  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore drawBoard updateBoard genPlayer [] False
   | otherwise = Board [] [] [] 0 0 drawBoard updateBoard genPlayer genGhosts False
 
 getTracks :: Maybe Pivot -> Direction -> Neighbor
