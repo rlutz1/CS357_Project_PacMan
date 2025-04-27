@@ -429,20 +429,36 @@ moveBoomhauer (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr
 moveBill :: Ghost -> Board -> Ghost
 moveBill (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
 moveBill (Ghost loc (Destination point, [t]) curr next d u) b = 
-  Ghost t (Destination  (getPlayerLocation b), dfsRefill b (getPlayerLocation b) loc (getPiv (getPivot loc b)) [] []) curr next d u
+  Ghost t (Destination  (getPlayerLocation b), dfsRefill b (getPlayerDestination b) (getValidNeighbors b loc) [] []) curr next d u
 moveBill (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
 
 getPlayerLocation :: Board -> Point
 getPlayerLocation (Board ts ps cs l s dB uB (Player loc _ _ _ _ _ _) gs gOver) = loc
 
+getPlayerDestination :: Board -> Point
+getPlayerDestination (Board ts ps cs l s dB uB (Player _ (Destination pt, _) _ _ _ _ _) gs gOver) = pt
 
-dfsRefill :: Board -> Point -> Point -> Pivot -> [Point] -> [Track] -> [Track]
-dfsRefill b dest curr (Pivot pt (up, down, left, right)) visited path
-  | dest == curr || null validNeighbors  = path
-  | otherwise = 
-      dfsRefill b dest (getNeighborPoint (head validNeighbors)) (getPiv (getPivot (getNeighborPoint (head validNeighbors)) b)) (pt:visited) (path ++ (getNeighborTrack (head validNeighbors)))
+-- board, destination, current point, visited list -> how we got here -> path list -> RETURN the path to take
+dfsRefill :: Board -> Point -> [Neighbor] ->  [Point] -> [Track] -> [Track]
+dfsRefill b dest ((Neighbor (Destination pt) track):stack) visited pathToGetHere 
+  | pt == dest = track
+  | otherwise = if pt `elem` visited then dfsRefill b dest stack visited pathToGetHere  else pathToGetHere ++ recur
   where 
-    validNeighbors = filter (\(Neighbor (Destination pt) _) -> notElem pt visited) (filter (/= Null) [up,  left, down, right])
+    next = getValidNeighbors b pt
+    recur = dfsRefill b dest (next ++ stack) (pt:visited) track 
+
+
+getValidNeighbors :: Board -> Point -> [Neighbor]
+getValidNeighbors b pt = filter (/= Null) [up,  left, down, right]  
+  where 
+    (Pivot newPt (up, down, left, right)) = getPiv (getPivot pt b)
+
+-- dfsRefill :: Board -> Point -> Point -> Pivot -> [Point] -> [Track] -> [Track]
+-- dfsRefill b dest curr (Pivot pt (up, down, left, right)) visited path
+--   | dest == curr || null validNeighbors = path
+--   | otherwise = 
+--       dfsRefill b dest (getNeighborPoint (head validNeighbors)) (getPiv (getPivot (getNeighborPoint (head validNeighbors)) b)) (pt:visited) (path ++ (getNeighborTrack (head validNeighbors)))
+
     
 getNeighborPoint :: Neighbor -> Point
 getNeighborPoint (Neighbor (Destination pt) _) = pt
