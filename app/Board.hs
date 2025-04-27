@@ -440,12 +440,12 @@ getPlayerDestination (Board ts ps cs l s dB uB (Player _ (Destination pt, _) _ _
 
 -- board, destination, current point, visited list -> how we got here -> path list -> RETURN the path to take
 dfsRefill :: Board -> Point -> [Neighbor] ->  [Point] -> [Track] -> [Track]
-dfsRefill b dest ((Neighbor (Destination pt) track):stack) visited pathToGetHere 
-  | pt == dest = track
-  | otherwise = if pt `elem` visited then dfsRefill b dest stack visited pathToGetHere  else pathToGetHere ++ recur
+dfsRefill b dest ((Neighbor (Destination pt) trackToNeighbor):stack) visited pathToGetHere 
+  | pt == dest = trackToNeighbor
+  | otherwise = if pt `elem` visited then dfsRefill b dest stack visited pathToGetHere else pathToGetHere ++ recur
   where 
     next = getValidNeighbors b pt
-    recur = dfsRefill b dest (next ++ stack) (pt:visited) track 
+    recur = dfsRefill b dest (next ++ stack) (pt:visited) trackToNeighbor 
 
 
 getValidNeighbors :: Board -> Point -> [Neighbor]
