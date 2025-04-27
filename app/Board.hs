@@ -392,7 +392,7 @@ GHOST MOVEMENT FUNCTIONS
 moveHank :: Ghost -> Board -> Ghost
 moveHank (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
 moveHank (Ghost loc (Destination point, [t]) curr next d u) b = 
-  Ghost t (Destination  (getPlayerDestination b), bfsRefill 1 b (getPlayerDestination b) (getValidNeighbors b loc 1) [point] []) curr next d u
+  Ghost t (Destination  (getPlayerDestination b), bfsRefill 1 b (getPlayerDestination b) (addPaths (getValidNeighbors b loc 1) []) [point]) curr next d u
 moveHank (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
 
 
@@ -461,18 +461,23 @@ dfsRefill order b dest ((Neighbor (Destination pt) trackToNeighbor):stack) visit
   where 
     next = getValidNeighbors b pt order
 
-bfsRefill :: Int -> Board -> Point -> [Neighbor] ->  [Point] -> [Track] -> [Track]
-bfsRefill order b dest ((Neighbor (Destination pt) tracksToNeighbor):queue) visited prev
-  | pt == dest = prev ++ tracksToNeighbor
+bfsRefill :: Int -> Board -> Point -> [(Neighbor, [Track])] ->  [Point] -> [Track]
+bfsRefill order b dest ((Neighbor (Destination pt) tracksToNeighbor, path):queue) visited 
+  | pt == dest = path ++ tracksToNeighbor
   | otherwise = 
     if pt `elem` visited 
-      then bfsRefill order b dest (queue) (visited) prev
-      else  bfsRefill order b dest (queue ++ next) (pt:visited) (prev ++ tracksToNeighbor)
+      then bfsRefill order b dest (queue) (visited) 
+      else  bfsRefill order b dest (queue ++ nextsWithPaths) (pt:visited)
       -- if not (null recur) then prev ++ recur else recur
   -- | otherwise = tracksToNeighbor ++ recur
   where
     next = getValidNeighbors b pt order
+    nextsWithPaths = addPaths next (path ++ tracksToNeighbor)
     -- recur = bfsRefill order b dest (queue ++ next) (pt:visited) tracksToNeighbor
+
+addPaths :: [Neighbor] -> [Track] -> [(Neighbor, [Track])]
+addPaths [] path = []
+addPaths (n:ns) path = (n, path) : addPaths ns path
 
 notAdjacent :: Point -> Point -> Bool
 notAdjacent (x1, y1) (x2, y2)
