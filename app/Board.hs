@@ -462,13 +462,17 @@ dfsRefill order b dest ((Neighbor (Destination pt) trackToNeighbor):stack) visit
     next = getValidNeighbors b pt order
 
 bfsRefill :: Int -> Board -> Point -> [Neighbor] ->  [Point] -> [Track] -> [Track]
-bfsRefill order b dest ((Neighbor (Destination pt) tracksToNeighbor):queue) visited path
-  | pt == dest = path ++ tracksToNeighbor
-  -- | pt `elem` visited = []
-  | otherwise = if pt `elem` visited then bfsRefill order b dest (queue) (visited) path else bfsRefill order b dest (queue ++ next) (pt:visited) (path ++ tracksToNeighbor)
+bfsRefill order b dest ((Neighbor (Destination pt) tracksToNeighbor):queue) visited prev
+  | pt == dest = prev ++ tracksToNeighbor
+  | otherwise = 
+    if pt `elem` visited 
+      then bfsRefill order b dest (queue) (visited) prev
+      else  bfsRefill order b dest (queue ++ next) (pt:visited) (prev ++ tracksToNeighbor)
+      -- if not (null recur) then prev ++ recur else recur
+  -- | otherwise = tracksToNeighbor ++ recur
   where
     next = getValidNeighbors b pt order
-    -- recur = bfsRefill order b dest (queue ++ next) (pt:visited) path
+    -- recur = bfsRefill order b dest (queue ++ next) (pt:visited) tracksToNeighbor
 
 notAdjacent :: Point -> Point -> Bool
 notAdjacent (x1, y1) (x2, y2)
