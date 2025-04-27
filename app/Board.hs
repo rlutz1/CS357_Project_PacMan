@@ -446,14 +446,25 @@ getPlayerDestination (Board ts ps cs l s dB uB (Player _ (Destination pt, _) _ _
 -- board, destination, current point, visited list -> how we got here -> path list -> RETURN the path to take
 dfsRefill :: Board -> Point -> [Neighbor] ->  [Point] -> [Track] -> [Track]
 dfsRefill b dest ((Neighbor (Destination pt) trackToNeighbor):stack) visited path 
+  | not (null path) && notAdjacent pt (last path) = path
   | pt == dest = path ++ trackToNeighbor -- pathToGetHere ++ trackToNeighbor
   | otherwise = 
     if pt `elem` visited 
       then dfsRefill b dest (stack) (visited) path
-      else  dfsRefill b dest (next ++ stack) (pt:visited) (path ++trackToNeighbor)
+      else  dfsRefill b dest (next ++ stack) (pt:visited) (path ++ trackToNeighbor)
   where 
     next = getValidNeighbors b pt 
 
+notAdjacent :: Point -> Point -> Bool
+notAdjacent (x1, y1) (x2, y2)
+  | sameCol (x1, y1) (x2, y2) = max y1 y2 - min y1 y2 > 50
+  | sameRow (x1, y1) (x2, y2) = max x1 x2 - min x1 x2 > 50
+  | otherwise = True
+
+-- allVisited :: Board -> Point -> [Point] -> Bool
+-- allVisited b pt visited = null (filter (\(Neighbor)) next)  
+--   where
+--     next = getValidNeighbors b pt
 
 getValidNeighbors :: Board -> Point -> [Neighbor]
 getValidNeighbors b pt = filter (/= Null) [up,  left, down, right]  
