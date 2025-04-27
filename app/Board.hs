@@ -214,7 +214,7 @@ billStartPoint = (325, 225)
 
 genLevel :: Int -> Board
 genLevel lvlNum 
-  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore drawBoard updateBoard genPlayer [genBoomhauer] False
+  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore drawBoard updateBoard genPlayer genGhosts False
   | otherwise = Board [] [] [] 0 0 drawBoard updateBoard genPlayer genGhosts False
 
 getTracks :: Maybe Pivot -> Direction -> Neighbor
@@ -392,7 +392,7 @@ GHOST MOVEMENT FUNCTIONS
 moveHank :: Ghost -> Board -> Ghost
 moveHank (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
 moveHank (Ghost loc (Destination point, [t]) curr next d u) b = 
-  Ghost t (Destination  (getPlayerDestination b), dfsRefill 1 b (getPlayerDestination b) (getValidNeighbors b loc 1) [point] []) curr next d u
+  Ghost t (Destination  (getPlayerDestination b), bfsRefill 1 b (getPlayerDestination b) (getValidNeighbors b loc 1) [point] []) curr next d u
 moveHank (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
 
 
@@ -405,7 +405,7 @@ moveDale (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next
 moveBoomhauer :: Ghost -> Board -> Ghost
 moveBoomhauer (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
 moveBoomhauer (Ghost loc (Destination point, [t]) curr next d u) b = 
-  Ghost t (Destination  (getPlayerDestination b), dfsRefillV2 b (getPlayerDestination b) (head (getValidNeighbors b loc 3)) [point]) curr next d u
+  Ghost t (Destination  (getPlayerDestination b), dfsRefillV2 b (getPlayerDestination b) (head (getValidNeighbors b loc 2)) [point]) curr next d u
 moveBoomhauer (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
 -- moveBoomhauer (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
 -- moveBoomhauer (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
@@ -441,7 +441,7 @@ dfsRefillV2 b dest (Neighbor (Destination pt) trackToNeighbor) visited
   | pt `elem` visited = []
   | otherwise = forEachNeighbor next
   where 
-    next = getValidNeighbors b pt 2
+    next = getValidNeighbors b pt 2 -- why does 3 and 4 black screen of death the damn thing?????
     forEachNeighbor [] = []
     forEachNeighbor (n:neighbors) 
       | null (dfsRefillV2 b dest n (pt:visited)) = forEachNeighbor neighbors
@@ -461,6 +461,15 @@ dfsRefill order b dest ((Neighbor (Destination pt) trackToNeighbor):stack) visit
   where 
     next = getValidNeighbors b pt order
 
+bfsRefill :: Int -> Board -> Point -> [Neighbor] ->  [Point] -> [Track] -> [Track]
+bfsRefill order b dest ((Neighbor (Destination pt) tracksToNeighbor):queue) visited path
+  | pt == dest = path ++ tracksToNeighbor
+  -- | pt `elem` visited = []
+  | otherwise = if pt `elem` visited then bfsRefill order b dest (queue) (visited) path else bfsRefill order b dest (queue ++ next) (pt:visited) (path ++ tracksToNeighbor)
+  where
+    next = getValidNeighbors b pt order
+    -- recur = bfsRefill order b dest (queue ++ next) (pt:visited) path
+
 notAdjacent :: Point -> Point -> Bool
 notAdjacent (x1, y1) (x2, y2)
   | sameCol (x1, y1) (x2, y2) = max y1 y2 - min y1 y2 > 50
@@ -478,7 +487,7 @@ getValidNeighbors b pt arg
   | arg == 2 = filter (/= Null) [left, down, right, up]  
   | arg == 3 = filter (/= Null) [down, right, left, up]  
   | arg == 4 = filter (/= Null) [down, right, up,  left]  
-  | otherwise = [down, right, up,  left]  
+  | otherwise = filter (/= Null) [down, right, up,  left]  
   where 
     (Pivot _ (up, down, left, right)) = getPiv (getPivot pt b)
 

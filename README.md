@@ -62,3 +62,5 @@ nice game flow.
     + if we hit zero, game over
     + if not, we just need to reset everyone back at their start points, but colls and score stays the same.
  
+
+ + two versions of dfs are almost the same despite the order change and it depends on the order of directional neighbors.
