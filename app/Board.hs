@@ -391,45 +391,37 @@ GHOST MOVEMENT FUNCTIONS
 
 moveHank :: Ghost -> Board -> Ghost
 moveHank (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
-moveHank (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
-  where 
-    nextPiv = getPivot point b
-    up = getTracks nextPiv UP
-    down = getTracks nextPiv DOWN
-    left = getTracks nextPiv LEFT
-    right = getTracks nextPiv RIGHT
-    validDirs = dumbShuffle (filter (/= Null) [up,  left, down, right ])
+moveHank (Ghost loc (Destination point, [t]) curr next d u) b = 
+  Ghost t (Destination  (getPlayerDestination b), dfsRefill 1 b (getPlayerDestination b) (getValidNeighbors b loc 1) [point] []) curr next d u
 moveHank (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
 
 
 moveDale :: Ghost -> Board -> Ghost
 moveDale (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
-moveDale (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
-  where 
-    nextPiv = getPivot point b
-    up = getTracks nextPiv UP
-    down = getTracks nextPiv DOWN
-    left = getTracks nextPiv LEFT
-    right = getTracks nextPiv RIGHT
-    validDirs = dumbShuffle (filter (/= Null) [down,  left, up, right ])
+moveDale (Ghost loc (Destination point, [t]) curr next d u) b = 
+  Ghost t (Destination  (getPlayerDestination b), dfsRefill 2 b (getPlayerDestination b) (getValidNeighbors b loc 2) [point] []) curr next d u
 moveDale (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
 
 moveBoomhauer :: Ghost -> Board -> Ghost
 moveBoomhauer (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
-moveBoomhauer (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
-  where 
-    nextPiv = getPivot point b
-    up = getTracks nextPiv UP
-    down = getTracks nextPiv DOWN
-    left = getTracks nextPiv LEFT
-    right = getTracks nextPiv RIGHT
-    validDirs = dumbShuffle (filter (/= Null) [up,  right, down, left ])
+moveBoomhauer (Ghost loc (Destination point, [t]) curr next d u) b = 
+  Ghost t (Destination  (getPlayerDestination b), dfsRefill 3 b (getPlayerDestination b) (getValidNeighbors b loc 3) [point] []) curr next d u
 moveBoomhauer (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
+-- moveBoomhauer (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
+-- moveBoomhauer (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
+--   where 
+--     nextPiv = getPivot point b
+--     up = getTracks nextPiv UP
+--     down = getTracks nextPiv DOWN
+--     left = getTracks nextPiv LEFT
+--     right = getTracks nextPiv RIGHT
+--     validDirs = dumbShuffle (filter (/= Null) [up,  right, down, left ])
+-- moveBoomhauer (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
 
 moveBill :: Ghost -> Board -> Ghost
 moveBill (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
 moveBill (Ghost loc (Destination point, [t]) curr next d u) b = 
-  Ghost t (Destination  (getPlayerDestination b), dfsRefill b (getPlayerDestination b) (getValidNeighbors b loc) [point] []) curr next d u
+  Ghost t (Destination  (getPlayerDestination b), dfsRefill 4 b (getPlayerDestination b) (getValidNeighbors b loc 4) [point] []) curr next d u
 moveBill (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
 -- moveBill (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
 -- moveBill (Ghost loc (Destination point, (t:ts)) curr next d u) b
@@ -444,16 +436,16 @@ getPlayerDestination :: Board -> Point
 getPlayerDestination (Board ts ps cs l s dB uB (Player _ (Destination pt, _) _ _ _ _ _) gs gOver) = pt
 
 -- board, destination, current point, visited list -> how we got here -> path list -> RETURN the path to take
-dfsRefill :: Board -> Point -> [Neighbor] ->  [Point] -> [Track] -> [Track]
-dfsRefill b dest ((Neighbor (Destination pt) trackToNeighbor):stack) visited path 
+dfsRefill :: Int -> Board -> Point -> [Neighbor] ->  [Point] -> [Track] -> [Track]
+dfsRefill order b dest ((Neighbor (Destination pt) trackToNeighbor):stack) visited path 
   | not (null path) && notAdjacent pt (last path) = path
   | pt == dest = path ++ trackToNeighbor -- pathToGetHere ++ trackToNeighbor
   | otherwise = 
     if pt `elem` visited 
-      then dfsRefill b dest (stack) (visited) path
-      else  dfsRefill b dest (next ++ stack) (pt:visited) (path ++ trackToNeighbor)
+      then dfsRefill order b dest (stack) (visited) path
+      else  dfsRefill order b dest (next ++ stack) (pt:visited) (path ++ trackToNeighbor)
   where 
-    next = getValidNeighbors b pt 
+    next = getValidNeighbors b pt order
 
 notAdjacent :: Point -> Point -> Bool
 notAdjacent (x1, y1) (x2, y2)
@@ -466,8 +458,13 @@ notAdjacent (x1, y1) (x2, y2)
 --   where
 --     next = getValidNeighbors b pt
 
-getValidNeighbors :: Board -> Point -> [Neighbor]
-getValidNeighbors b pt = filter (/= Null) [up,  left, down, right]  
+getValidNeighbors :: Board -> Point -> Int -> [Neighbor]
+getValidNeighbors b pt arg
+  | arg == 1  = filter (/= Null) [up,  left, down, right]  
+  | arg == 2 = filter (/= Null) [left, down, right, up]  
+  | arg == 3 = filter (/= Null) [down, right, left, up]  
+  | arg == 4 = filter (/= Null) [down, right, up,  left]  
+  | otherwise = [down, right, up,  left]  
   where 
     (Pivot _ (up, down, left, right)) = getPiv (getPivot pt b)
 
