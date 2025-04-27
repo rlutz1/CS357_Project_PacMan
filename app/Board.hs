@@ -214,7 +214,7 @@ billStartPoint = (325, 225)
 
 genLevel :: Int -> Board
 genLevel lvlNum 
-  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore drawBoard updateBoard genPlayer [genBill] False
+  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore drawBoard updateBoard genPlayer [genBoomhauer] False
   | otherwise = Board [] [] [] 0 0 drawBoard updateBoard genPlayer genGhosts False
 
 getTracks :: Maybe Pivot -> Direction -> Neighbor
@@ -405,7 +405,7 @@ moveDale (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next
 moveBoomhauer :: Ghost -> Board -> Ghost
 moveBoomhauer (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
 moveBoomhauer (Ghost loc (Destination point, [t]) curr next d u) b = 
-  Ghost t (Destination  (getPlayerDestination b), dfsRefill 3 b (getPlayerDestination b) (getValidNeighbors b loc 3) [point] []) curr next d u
+  Ghost t (Destination  (getPlayerDestination b), dfsRefillV2 b (getPlayerDestination b) (head (getValidNeighbors b loc 3)) [point]) curr next d u
 moveBoomhauer (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
 -- moveBoomhauer (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
 -- moveBoomhauer (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
@@ -435,10 +435,24 @@ getPlayerLocation (Board ts ps cs l s dB uB (Player loc _ _ _ _ _ _) gs gOver) =
 getPlayerDestination :: Board -> Point
 getPlayerDestination (Board ts ps cs l s dB uB (Player _ (Destination pt, _) _ _ _ _ _) gs gOver) = pt
 
+dfsRefillV2 :: Board -> Point -> Neighbor ->  [Point] -> [Track]
+dfsRefillV2 b dest (Neighbor (Destination pt) trackToNeighbor) visited
+  | pt == dest = trackToNeighbor
+  | pt `elem` visited = []
+  | otherwise = forEachNeighbor next
+  where 
+    next = getValidNeighbors b pt 2
+    forEachNeighbor [] = []
+    forEachNeighbor (n:neighbors) 
+      | null (dfsRefillV2 b dest n (pt:visited)) = forEachNeighbor neighbors
+      | otherwise = trackToNeighbor ++ dfsRefillV2 b dest n (pt:visited)
+
+
 -- board, destination, current point, visited list -> how we got here -> path list -> RETURN the path to take
 dfsRefill :: Int -> Board -> Point -> [Neighbor] ->  [Point] -> [Track] -> [Track]
 dfsRefill order b dest ((Neighbor (Destination pt) trackToNeighbor):stack) visited path 
   | not (null path) && notAdjacent pt (last path) = path
+  -- | null next = path
   | pt == dest = path ++ trackToNeighbor -- pathToGetHere ++ trackToNeighbor
   | otherwise = 
     if pt `elem` visited 
