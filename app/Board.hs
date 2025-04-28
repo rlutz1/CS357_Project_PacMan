@@ -174,7 +174,14 @@ specify walls by the center point only.
 -}
 
 lvl1Walls :: [Point]
-lvl1Walls =  [(-375, -375), (175, 175), (25, 25)]
+lvl1Walls =  [(-375, -375), 
+              (-375, -325), 
+              (-375, -275),
+              (-375, -225),
+              (-375, -125),
+              (-375, -75),
+              (-375, -25),
+              (175, 175), (25, 25)]
 
 lvl1SpecialCollectibles :: [(Collectible, Point)]
 lvl1SpecialCollectibles = undefined
