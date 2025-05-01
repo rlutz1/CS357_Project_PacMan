@@ -404,10 +404,10 @@ moveDale (Ghost (x, y) (Destination point, [t]) curr next d u) b =
   Ghost t (Destination  (getPlayerDestination b), dfsRefill (getRandomOrder x) b (getPlayerDestination b) (getValidNeighbors b (x, y) (getRandomOrder x)) [point] []) curr next d u
 moveDale (Ghost (x, y) (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
 
--- getRandomOrder :: Float -> Int
--- getRandomOrder x = (abs (round x) * 7) `mod` 2
 getRandomOrder :: Float -> Int
-getRandomOrder _ = 1
+getRandomOrder x = (abs (round x) * 7) `mod` 2
+-- getRandomOrder :: Float -> Int
+-- getRandomOrder _ = 2
 
 moveBoomhauer :: Ghost -> Board -> Ghost
 moveBoomhauer (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
@@ -427,8 +427,8 @@ moveBoomhauer (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr
 
 moveBill :: Ghost -> Board -> Ghost
 moveBill (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
-moveBill (Ghost loc (Destination point, [t]) curr next d u) b = 
-  Ghost t (Destination  (getPlayerDestination b), dfsRefill 4 b (getPlayerDestination b) (getValidNeighbors b loc 4) [point] []) curr next d u
+moveBill (Ghost (x, y) (Destination point, [t]) curr next d u) b = 
+  Ghost t (Destination  (getPlayerDestination b), dfsRefill (getRandomOrder x) b (getPlayerDestination b) (getValidNeighbors b (x, y) (getRandomOrder x)) [point] []) curr next d u
 moveBill (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
 -- moveBill (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
 -- moveBill (Ghost loc (Destination point, (t:ts)) curr next d u) b
