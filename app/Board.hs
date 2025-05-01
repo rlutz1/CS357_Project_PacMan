@@ -81,8 +81,8 @@ enactEffect
   filteredColls -- filtered out the eaten coll
   (Just (Collectible effect score color' pos)) -- this should always be given here  
   (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver) -- the board
-  | effect == GhostsOff = Board ts ps (filteredColls) l (s + score) d u (Player loc dest curr next dp up collDetect) gs gOver
-  | otherwise = Board ts ps (filteredColls) l (s + score) d u (Player loc dest curr next dp up collDetect) gs gOver
+  | effect == GhostsOff = Board ts ps filteredColls l (s + score) d u (Player loc dest curr next dp up False) gs gOver
+  | otherwise = Board ts ps filteredColls l (s + score) d u (Player loc dest curr next dp up collDetect) gs gOver
 enactEffect _ Nothing b = b -- this hypothetically should never happen, but here anyway
 
 drawGameWon :: Board -> [Picture]
