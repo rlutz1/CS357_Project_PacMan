@@ -59,7 +59,7 @@ checkGameOver x = x < 0
 -- terribly inefficient, poorly organized, this would be better encapsed in player some how...but idk yet
 updateCollectibles :: Board -> Board 
 updateCollectibles (Board ts ps cs l s d u (Player loc dest curr next dp up coll) gs gOver) 
-  | length filteredColls < length cs = Board ts ps (Eaten loc : filteredColls) l (s + updateScore (findColl loc cs)) d u (Player loc dest curr next dp up coll) gs gOver
+  | length filteredColls < length cs = Board ts ps (filteredColls) l (s + updateScore (findColl loc cs)) d u (Player loc dest curr next dp up coll) gs gOver
   | otherwise = if allEaten cs then Board ts ps cs l s drawGameWon id (Player loc dest curr next dp up coll) gs True else Board ts ps cs l s d u (Player loc dest curr next dp up coll) gs gOver
   where
     filteredColls = filter (\c -> deconCollLoc c /= loc) cs
@@ -78,23 +78,19 @@ drawGameWonNotification = [
 
 allEaten :: [Collectible] -> Bool
 allEaten [] = True
-allEaten (Eaten _:cs) = allEaten cs  
-allEaten (Collectible _ _ _ _:cs) = False
+allEaten _ = False
 
 updateScore :: Maybe Collectible -> Int
 updateScore Nothing = 0
 updateScore (Just (Collectible _ s _ _)) = s
-updateScore (Just (Eaten _)) = 0
 
 findColl :: Point -> [Collectible] -> Maybe Collectible
 findColl p [] = Nothing
-findColl p (Eaten _:cs) = findColl p cs
 findColl p ((Collectible e s c pt):cs)
   | p == pt = Just (Collectible e s c pt)
   | otherwise = findColl p cs
 
 deconCollLoc :: Collectible -> Point
-deconCollLoc (Eaten p) = p
 deconCollLoc (Collectible _ _ _ p) = p
 
 {-
@@ -266,7 +262,6 @@ drawCollectibles :: [Collectible] -> [Picture]
 drawCollectibles = map drawCollectible
 
 drawCollectible :: Collectible -> Picture
-drawCollectible (Eaten _) = Blank
 drawCollectible (Collectible _ _ c (x, y)) = color c (translate x y (thickCircle 5 10))
 
 drawLives :: Int -> Picture

@@ -53,7 +53,7 @@ data Direction = UP | DOWN | LEFT | RIGHT | NONE
     deriving (Enum, Eq, Show)
 
 -- effect, score value color for drawing
-data Collectible = Eaten Point | Collectible Effect Int Color Point
+data Collectible = Collectible Effect Int Color Point
   deriving (Eq, Show) 
 
 data Effect = NoEffect | GhostsOff
