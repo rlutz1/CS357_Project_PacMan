@@ -11,6 +11,7 @@ updateBoard (Board ts ps cs ls s dB uB p gs gOver) =
     let updatedP = updatePlayer p (Board ts ps cs ls s dB uB p gs gOver)
     let updatedGs = updateGhosts gs (Board ts ps cs ls s dB uB p gs gOver)
     let updatedColls = updateCollectibles (Board ts ps cs ls s dB uB updatedP updatedGs gOver)
+    -- let updateEffects = updateEffects updatedP (board) -> Board
     checkCollision (updatedColls) updatedP updatedGs
 
 
@@ -77,7 +78,30 @@ updateCollectibles (Board ts ps cs l s d u (Player loc dest curr next dp up coll
 
 enactEffect :: [Collectible] -> Maybe Collectible ->  Board -> Board
 
-enactEffect 
+{-
+to do here:
+need to update the ghost drawing function to be like white or some shit, basic user feedback
+trickiest part: need to have some sort of timing mechanism.
+
+thots on timing.
+could add anothing thing to the player or board.
+i like player more.
+it would be hypothetically reasonable to have many collectibles with diff effects
+have a [] of what would effectively be timers
+thinking something like (float, effect, float(end effect time?))
+so that if we don't have that effect in the list, add it, start timer as 0, and set whatever the effect end time is (can be within the collectible)
+if we already have that effect in the list, simply reset the timer. or add to end time, whatever makes sense
+if timer >= end, effect is off, "remove" it from the timer list
+  actually, have updateplayer check the effect timers as well as move the player. that's just fine.
+  then we will need some sort of checkActiveEffects that takes the board that sees what effects are on going in the player's timers, and changes the drawing or update functions needed?
+
+then it really just comes down to how to have a timer. 
+we do ignore the time since last frame value in update in main rn. 
+i could give that to the update function and see how that works.
+
+-}
+
+enactEffect -- maybe this could just take the player? if we're doing things elsewhere for the board
   filteredColls -- filtered out the eaten coll
   (Just (Collectible effect score color' pos)) -- this should always be given here  
   (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver) -- the board
@@ -231,13 +255,13 @@ hankStartPoint :: Point
 hankStartPoint = (475, 225)
 
 daleStartPoint :: Point
-daleStartPoint = (425, 225)
+daleStartPoint = (475, -475)
 
 boomhauerStartPoint :: Point
-boomhauerStartPoint = (375, 225)
+boomhauerStartPoint = (-475, 225)
 
 billStartPoint :: Point
-billStartPoint = (325, 225)
+billStartPoint = (75, 25)
 
 genLevel :: Int -> Board
 genLevel lvlNum 
