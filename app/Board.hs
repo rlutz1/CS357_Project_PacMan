@@ -10,7 +10,8 @@ updateBoard (Board ts ps cs ls s dB uB p gs gOver) =
   do
     let updatedP = updatePlayer p (Board ts ps cs ls s dB uB p gs gOver)
     let updatedGs = updateGhosts gs (Board ts ps cs ls s dB uB p gs gOver)
-    checkCollision (updateCollectibles (Board ts ps cs ls s dB uB updatedP updatedGs gOver)) updatedP updatedGs
+    let updatedColls = updateCollectibles (Board ts ps cs ls s dB uB updatedP updatedGs gOver)
+    checkCollision (updatedColls) updatedP updatedGs
 
 
 
@@ -55,14 +56,34 @@ sameRow (_, y1) (_, y2) = y1 == y2
 checkGameOver :: Int -> Bool
 checkGameOver x = x < 0
 
-
+{-
+okay let's think it through.
+when we find the collectible, we need to see what kind it is.
+within the collectible there is an effect associated. 
+it feels like we need to test upon the effect. 
+what do we want to happen based on the cherry effect
+-}
 -- terribly inefficient, poorly organized, this would be better encapsed in player some how...but idk yet
 updateCollectibles :: Board -> Board 
-updateCollectibles (Board ts ps cs l s d u (Player loc dest curr next dp up coll) gs gOver) 
-  | length filteredColls < length cs = Board ts ps (filteredColls) l (s + updateScore (findColl loc cs)) d u (Player loc dest curr next dp up coll) gs gOver
-  | otherwise = if allEaten cs then Board ts ps cs l s drawGameWon id (Player loc dest curr next dp up coll) gs True else Board ts ps cs l s d u (Player loc dest curr next dp up coll) gs gOver
+updateCollectibles (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver) 
+  | length filteredColls < length cs = 
+    enactEffect filteredColls (findColl loc cs) (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver) 
+  | otherwise = 
+    if allEaten cs 
+      then Board ts ps cs l s drawGameWon id (Player loc dest curr next dp up collDetect) gs True 
+      else Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver
   where
     filteredColls = filter (\c -> deconCollLoc c /= loc) cs
+
+enactEffect :: [Collectible] -> Maybe Collectible ->  Board -> Board
+
+enactEffect 
+  filteredColls -- filtered out the eaten coll
+  (Just (Collectible effect score color' pos)) -- this should always be given here  
+  (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver) -- the board
+  | effect == GhostsOff = Board ts ps (filteredColls) l (s + score) d u (Player loc dest curr next dp up collDetect) gs gOver
+  | otherwise = Board ts ps (filteredColls) l (s + score) d u (Player loc dest curr next dp up collDetect) gs gOver
+enactEffect _ Nothing b = b -- this hypothetically should never happen, but here anyway
 
 drawGameWon :: Board -> [Picture]
 drawGameWon b =  drawBoard b ++ drawGameWonNotification
