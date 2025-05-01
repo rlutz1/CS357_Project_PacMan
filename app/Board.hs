@@ -125,8 +125,11 @@ handlers for the underlying movement mechanic, known as tracks.
 genPivots :: [Point] -> [Pivot]
 genPivots walls = [ Pivot p (getNeighbor UP p walls, getNeighbor DOWN p walls, getNeighbor LEFT p walls, getNeighbor RIGHT p walls) | p <- genCenters, notElem p walls]
 
-genCollectibles :: [Point] -> [Collectible] -- for now, to get some basic ones "installed"
-genCollectibles walls = [ Collectible NoEffect 10 orange p | p <- genCenters, notElem p walls]
+genCollectibles :: [Point] -> [(Point, Collectible)] -> [Collectible] -- for now, to get some basic ones "installed"
+genCollectibles walls specials = specialColls ++ [ Collectible NoEffect 10 orange p | p <- genCenters, notElem p walls, notElem p specialPoints]
+  where
+    specialPoints = [ p | (p, _) <- specials ]
+    specialColls = [ c | (_, c) <- specials ]
 
 genCenters :: [Point]
 genCenters = [ (x, y) | x <- [-475, -425..475], y <- [-475, -425..225] ]
@@ -179,8 +182,8 @@ lvl1Walls =  [(-375, -375),
               (-375, -25),
               (175, 175), (25, 25)]
 
-lvl1SpecialCollectibles :: [(Collectible, Point)]
-lvl1SpecialCollectibles = undefined
+lvl1SpecialCollectibles :: [(Point, Collectible)] -- only the one for testing
+lvl1SpecialCollectibles = [((-375, -475), Collectible GhostsOff 5 red (-375, -475))]
 
 
 {-
@@ -217,7 +220,7 @@ billStartPoint = (325, 225)
 
 genLevel :: Int -> Board
 genLevel lvlNum 
-  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls)) playerInitLives playerInitScore drawBoard updateBoard genPlayer genGhosts False
+  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls) lvl1SpecialCollectibles) playerInitLives playerInitScore drawBoard updateBoard genPlayer genGhosts False
   | otherwise = Board [] [] [] 0 0 drawBoard updateBoard genPlayer genGhosts False
 
 getTracks :: Maybe Pivot -> Direction -> Neighbor
