@@ -400,14 +400,19 @@ moveHank (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next
 
 moveDale :: Ghost -> Board -> Ghost
 moveDale (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
-moveDale (Ghost loc (Destination point, [t]) curr next d u) b = 
-  Ghost t (Destination  (getPlayerDestination b), dfsRefill 2 b (getPlayerDestination b) (getValidNeighbors b loc 2) [point] []) curr next d u
-moveDale (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
+moveDale (Ghost (x, y) (Destination point, [t]) curr next d u) b = 
+  Ghost t (Destination  (getPlayerDestination b), dfsRefill (getRandomOrder x) b (getPlayerDestination b) (getValidNeighbors b (x, y) (getRandomOrder x)) [point] []) curr next d u
+moveDale (Ghost (x, y) (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
+
+-- getRandomOrder :: Float -> Int
+-- getRandomOrder x = (abs (round x) * 7) `mod` 2
+getRandomOrder :: Float -> Int
+getRandomOrder _ = 1
 
 moveBoomhauer :: Ghost -> Board -> Ghost
 moveBoomhauer (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
-moveBoomhauer (Ghost loc (Destination point, [t]) curr next d u) b = 
-  Ghost t (Destination  (getPlayerDestination b), dfsRefillV2 b (getPlayerDestination b) (head (getValidNeighbors b loc 2)) [point]) curr next d u
+moveBoomhauer (Ghost (x, y) (Destination point, [t]) curr next d u) b = 
+  Ghost t (Destination  (getPlayerDestination b), dfsRefillV2 (getRandomOrder y) b (getPlayerDestination b) (head (getValidNeighbors b (x, y) (getRandomOrder y))) [point]) curr next d u
 moveBoomhauer (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
 -- moveBoomhauer (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
 -- moveBoomhauer (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
@@ -437,17 +442,17 @@ getPlayerLocation (Board ts ps cs l s dB uB (Player loc _ _ _ _ _ _) gs gOver) =
 getPlayerDestination :: Board -> Point
 getPlayerDestination (Board ts ps cs l s dB uB (Player _ (Destination pt, _) _ _ _ _ _) gs gOver) = pt
 
-dfsRefillV2 :: Board -> Point -> Neighbor ->  [Point] -> [Track]
-dfsRefillV2 b dest (Neighbor (Destination pt) trackToNeighbor) visited
+dfsRefillV2 :: Int -> Board -> Point -> Neighbor ->  [Point] -> [Track]
+dfsRefillV2 order b dest (Neighbor (Destination pt) trackToNeighbor) visited
   | pt == dest = trackToNeighbor
   | pt `elem` visited = []
   | otherwise = forEachNeighbor next
   where 
-    next = getValidNeighbors b pt 2 -- why does 3 and 4 black screen of death the damn thing?????
+    next = getValidNeighbors b pt order -- why does 3 and 4 black screen of death the damn thing?????
     forEachNeighbor [] = []
     forEachNeighbor (n:neighbors) 
-      | null (dfsRefillV2 b dest n (pt:visited)) = forEachNeighbor neighbors
-      | otherwise = trackToNeighbor ++ dfsRefillV2 b dest n (pt:visited)
+      | null (dfsRefillV2 order b dest n (pt:visited)) = forEachNeighbor neighbors
+      | otherwise = trackToNeighbor ++ dfsRefillV2 order b dest n (pt:visited)
 
 
 -- board, destination, current point, visited list -> how we got here -> path list -> RETURN the path to take
@@ -496,8 +501,6 @@ getValidNeighbors :: Board -> Point -> Int -> [Neighbor]
 getValidNeighbors b pt arg
   | arg == 1  = filter (/= Null) [up,  left, down, right]  
   | arg == 2 = filter (/= Null) [left, down, right, up]  
-  | arg == 3 = filter (/= Null) [down, right, left, up]  
-  | arg == 4 = filter (/= Null) [down, right, up,  left]  
   | otherwise = filter (/= Null) [down, right, up,  left]  
   where 
     (Pivot _ (up, down, left, right)) = getPiv (getPivot pt b)
