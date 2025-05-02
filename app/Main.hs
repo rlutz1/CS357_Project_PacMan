@@ -52,19 +52,19 @@ MAIN GAME FUNCTIONS
 -}
 
 drawMain :: World -> Picture
-drawMain (MainGameWorld (Board ts ps cs ls s dB uB p gs gOver) _ _ _) = 
-  Pictures (dB (Board ts ps cs ls s dB uB p gs gOver)) -- tiles, collectibles, then player, ghosts
+drawMain (MainGameWorld (Board ts ps cs ls s dB uB p gs gOver ) _ _ _) = 
+  Pictures (dB (Board ts ps cs ls s dB uB p gs gOver )) -- tiles, collectibles, then player, ghosts
 drawMain _ = Blank
 
 updateMain :: Float -> World -> World 
-updateMain _ (MainGameWorld (Board ts ps cs ls s dB uB p gs gOver) d u h ) = 
-  MainGameWorld (uB (Board ts ps cs ls s dB uB p gs gOver)) d u h 
+updateMain _ (MainGameWorld (Board ts ps cs ls s dB uB p gs gOver ) d u h ) = 
+  MainGameWorld (uB (Board ts ps cs ls s dB uB p gs gOver )) d u h 
 updateMain _ w = w
 
 handleMain :: Event -> World -> World
-handleMain (EventKey (Char 'g') Down _ _) (MainGameWorld (Board ts ps cs ls s dB uB p gs gOver) d u h) 
+handleMain (EventKey (Char 'g') Down _ _) (MainGameWorld (Board ts ps cs ls s dB uB p gs gOver ) d u h) 
   | gOver = getTitle -- todo: works! leave this here to know implementation of main title thing
-  | otherwise = MainGameWorld (Board ts ps cs ls s dB uB p gs gOver) d u h
+  | otherwise = MainGameWorld (Board ts ps cs ls s dB uB p gs gOver ) d u h
 handleMain (EventKey (SpecialKey KeyUp) Down _ _) w = queueMove w UP
 handleMain (EventKey (SpecialKey KeyDown) Down _ _) w = queueMove w DOWN
 handleMain (EventKey (SpecialKey KeyLeft) Down _ _) w = queueMove w LEFT
@@ -72,8 +72,8 @@ handleMain (EventKey (SpecialKey KeyRight) Down _ _) w = queueMove w RIGHT
 handleMain _ w = w
 
 queueMove :: World -> Direction -> World -- move t player?
-queueMove (MainGameWorld (Board ts ps cs ls s dB uB (Player l path curr _ dp up coll) gs gOver) d u h) dir =
-   MainGameWorld (Board ts ps cs ls s dB uB (Player l path curr dir dp up coll) gs gOver) d u h
+queueMove (MainGameWorld (Board ts ps cs ls s dB uB (Player l path curr _ dp up coll) gs gOver ) d u h) dir =
+   MainGameWorld (Board ts ps cs ls s dB uB (Player l path curr dir dp up coll) gs gOver ) d u h
 queueMove w _ = w
 
 {-
