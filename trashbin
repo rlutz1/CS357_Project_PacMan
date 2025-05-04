@@ -345,3 +345,33 @@ needRefill _ = False
 -- getCol :: Graph -> Int
 -- getCol (Node (_) _ c) = c
 -- -- genPath
+
+
+-- dfsRefillV2 :: Int -> Board -> Point -> Neighbor ->  [Point] -> [Track]
+-- dfsRefillV2 order b dest (Neighbor (Destination pt) trackToNeighbor) visited
+--   | pt == dest = trackToNeighbor
+--   | pt `elem` visited = []
+--   | otherwise = forEachNeighbor next
+--   where 
+--     next = getValidNeighbors b pt order -- why does 3 and 4 black screen of death the damn thing?????
+--     forEachNeighbor [] = []
+--     forEachNeighbor (n:neighbors) 
+--       | null (dfsRefillV2 order b dest n (pt:visited)) = forEachNeighbor neighbors
+--       | otherwise = trackToNeighbor ++ dfsRefillV2 order b dest n (pt:visited)
+
+
+
+
+-- board, destination, current point, visited list -> how we got here -> path list -> RETURN the path to take
+dfsRefill :: Int -> Board -> Point -> [Neighbor] ->  [Point] -> [Track] -> [Track]
+dfsRefill order b dest [] visited path = path
+dfsRefill order b dest ((Neighbor (Destination pt) trackToNeighbor):stack) visited path 
+  | not (null path) && notAdjacent pt (last path) = path
+  -- | null next = path
+  | pt == dest = path ++ trackToNeighbor -- pathToGetHere ++ trackToNeighbor
+  | otherwise = 
+    if pt `elem` visited 
+      then dfsRefill order b dest (stack) (visited) path
+      else  dfsRefill order b dest (next ++ stack) (pt:visited) (path ++ trackToNeighbor)
+  where 
+    next = getValidNeighbors b pt order

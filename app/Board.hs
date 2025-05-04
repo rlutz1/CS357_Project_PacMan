@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 module Board where
 
 import Brillo
@@ -263,7 +264,7 @@ getPivot point (Board ts ((Pivot pt ns):ps) cs l s d u p gs gOver timers)
   | otherwise = getPivot point (Board ts ps cs l s d u p gs gOver timers) 
 
 genPlayer :: Player 
-genPlayer = Player playerStartPoint (Destination playerStartPoint, []) NONE NONE drawPlayer updatePlayer True
+genPlayer = Player playerStartPoint (Destination playerStartPoint, []) NONE NONE drawPlayer updatePlayer False
 
 {-
 ------------------------------------------------------------
@@ -273,17 +274,104 @@ specify walls by the center point only.
 ------------------------------------------------------------
 -}
 
-lvl1Walls :: [Point]
-lvl1Walls =  [
-  (-375, -375), 
-  (-375, -325), 
-  (-375, -275),
-  (-375, -225),
+-- lvl1Walls :: [Point]
+-- lvl1Walls =  [
+--   (-375, -375), 
+--   (-375, -325), 
+--   (-375, -275),
+--   (-375, -225),
 
-  (-375, -125),
-  (-375, -75),
-  (-375, -25)
-  ]
+--   (-375, -125),
+--   (-375, -75),
+--   (-375, -25)
+--   ]
+
+lvl1Walls :: [Point]
+lvl1Walls =  [(-375, -375), 
+              (-375, -325), 
+              (-375, -275),
+              (-375, -225),
+
+              (-375, -125),
+              (-375, -75),
+              (-375, -25),
+              (-375, 25),
+
+              (-325, -275),
+              (-325, -75),
+
+              (-275, -375), 
+              (-275, -325), 
+              (-275, -275),
+              (-275, -225),
+
+              (-275, -125),
+              (-275, -75),
+              (-275, -25),
+              (-275, 25),
+
+              (-225, -275),
+              (-225, -75),
+
+              (-175, -375), 
+              (-175, -325), 
+              (-175, -275),
+              (-175, -225),
+
+              (-175, -125),
+              (-175, -75),
+              (-175, -25),
+              (-175, 25),
+              
+              (175, -375), 
+              (175, -325), 
+              (175, -275),
+              (175, -225),
+              
+              (175, -125),
+              (175, -75),
+              (175, -25),
+              (175, 25),
+            
+              (225, -275),
+              (225, -75),
+
+              (275, -375), 
+              (275, -325), 
+              (275, -275),
+              (275, -225),
+
+              (275, -125),
+              (275, -75),
+              (275, -25),
+              (275, 25),
+              
+              (325, -275),
+              (325, -75),
+
+              (375, -375), 
+              (375, -325), 
+              (375, -275),
+              (375, -225),
+
+              (375, -125),
+              (375, -75),
+              (375, -25),
+              (375, 25),
+              -- criss crossies
+              (-125, -375), (-125, -125),
+              (-75, -75), (-75, -325),
+              (-25, -325),
+              (25, -25),
+              (75, -275), (75, -25),
+              (125, -225), (125, 25),
+              -- big T
+              (-375, 175),(-325, 175),(-275, 175),(-225, 175),(-175, 175),(-125, 175),(-75, 175),(-25, 175),
+              (375, 175),(325, 175),(275, 175),(225, 175),(175, 175),(125, 175),(75, 175),(25, 175),
+              (-375, 125),(375, 125),
+              (-25, 125),(-25, 75),
+              (25, 125),(25, 75)
+              ]
 
 lvl1SpecialCollectibles :: [Collectible] -- only the one for testing
 lvl1SpecialCollectibles = [
@@ -483,54 +571,54 @@ GHOST MOVEMENT FUNCTIONS
 -- i may not need directions for the ghosts
 -- below are where the ai decision making movesments should live
 
+-- the nuke
 moveBlinky :: Ghost -> Board -> Ghost
 moveBlinky (Ghost name loc (Destination point, []) curr next d u) b 
   = Ghost name loc (Destination point, [loc]) curr next d u
 moveBlinky (Ghost name loc (Destination point, [t]) curr next d u) b 
-  = Ghost name t (Destination  (getPlayerDestination b), bfsRefill 1 b (getPlayerDestination b) (addPaths (getValidNeighbors b loc 1) []) [point]) curr next d u
+  = Ghost name t (Destination  (getPlayerDestination b), nuke 1 b (getPlayerDestination b) (addPaths (getValidNeighbors b loc 1) []) [point]) curr next d u
 moveBlinky (Ghost name loc (dest, t:ts) curr next d u) _ = Ghost name t (dest, ts) curr next d u
 
-
+-- the nuke but only within line of sight, otherwise meanderer
 movePinky :: Ghost -> Board -> Ghost
 movePinky (Ghost name loc (Destination point, []) curr next d u) b 
   = Ghost name loc (Destination point, [loc]) curr next d u
+
 movePinky (Ghost name (x, y) (Destination point, [t]) curr next d u) b
-  = Ghost name t (Destination  (getPlayerDestination b), dfsRefill (getRandomOrder x) b (getPlayerDestination b) (getValidNeighbors b (x, y) (getRandomOrder x)) [point] []) curr next d u
-movePinky (Ghost name (x, y) (dest, t:ts) curr next d u) _ = Ghost name t (dest, ts) curr next d u
+  | sameCol (getPlayerLocation b) (x, y) || sameRow (getPlayerLocation b) (x, y) = Ghost name t (Destination (getPlayerDestination b), nuke (getRandomOrder x) b (getPlayerDestination b) (addPaths (getValidNeighbors b (x, y) (getRandomOrder x)) []) [point]) curr next d u -- NUKE
+  | otherwise = Ghost name t (Destination  (getPlayerDestination b), meander (getRandomOrder x) b (head (getValidNeighbors b (x, y) (getRandomOrder x))) [point] []) curr next d u
+  -- = Ghost name t (Destination  (getPlayerDestination b), meander (getRandomOrder x) b (head (getValidNeighbors b (x, y) (getRandomOrder x))) [point] []) curr next d u 
+
+movePinky (Ghost name loc (Destination point, t:ts) curr next d u) b = Ghost name t (Destination point, ts) curr next d u 
+  -- | withinLineOfSight (getPlayerLocation b) loc = Ghost name loc (Destination (getPlayerDestination b), nuke 1 b (getPlayerDestination b) (addPaths (getValidNeighbors b loc 1) []) [point]) curr next d u -- NUKE
+  -- | otherwise = Ghost name t (Destination point, ts) curr next d u -- just continue on
+
+withinLineOfSight :: Point -> Point -> Bool
+withinLineOfSight p g = sameCol p g || sameRow p g
+
+
 
 getRandomOrder :: Float -> Int
 getRandomOrder x = (abs (round x) * 7) `mod` 2
 -- getRandomOrder :: Float -> Int
 -- getRandomOrder _ = 2
 
+-- a meanderer
 moveInky :: Ghost -> Board -> Ghost
 moveInky (Ghost name loc (Destination point, []) curr next d u) b 
   = Ghost name loc (Destination point, [loc]) curr next d u
 moveInky (Ghost name (x, y) (Destination point, [t]) curr next d u) b 
-  = Ghost name t (Destination  (getPlayerDestination b), dfsRefillV2 (getRandomOrder y) b (getPlayerDestination b) (head (getValidNeighbors b (x, y) (getRandomOrder y))) [point]) curr next d u
+  = Ghost name t (Destination  (getPlayerDestination b), meander (getRandomOrder y) b (head (getValidNeighbors b (x, y) (getRandomOrder x))) [point] []) curr next d u
 moveInky (Ghost name loc (dest, t:ts) curr next d u) _ = Ghost name t (dest, ts) curr next d u
--- moveInky (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
--- moveInky (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
---   where 
---     nextPiv = getPivot point b
---     up = getTracks nextPiv UP
---     down = getTracks nextPiv DOWN
---     left = getTracks nextPiv LEFT
---     right = getTracks nextPiv RIGHT
---     validDirs = dumbShuffle (filter (/= Null) [up,  right, down, left ])
--- moveInky (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
 
+-- a meanderer
 moveClyde :: Ghost -> Board -> Ghost
 moveClyde (Ghost name loc (Destination point, []) curr next d u) b 
   = Ghost name loc (Destination point, [loc]) curr next d u
 moveClyde (Ghost name (x, y) (Destination point, [t]) curr next d u) b 
-  = Ghost name t (Destination  (getPlayerDestination b), dfsRefill (getRandomOrder x) b (getPlayerDestination b) (getValidNeighbors b (x, y) (getRandomOrder x)) [point] []) curr next d u
+  = Ghost name t (Destination  (getPlayerDestination b), meander (getRandomOrder x) b (head (getValidNeighbors b (x, y) (getRandomOrder y))) [point] []) curr next d u
 moveClyde (Ghost name loc (dest, t:ts) curr next d u) _ = Ghost name t (dest, ts) curr next d u
--- moveClyde (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
--- moveClyde (Ghost loc (Destination point, (t:ts)) curr next d u) b
---   | length ts < 50 =
---     Ghost t (Destination  (getPlayerDestination b), ts ++ dfsRefill b (getPlayerDestination b) (getValidNeighbors b point) [] []) curr next d u
---   | otherwise = Ghost t (Destination point, ts) curr next d u
+
 
 getPlayerLocation :: Board -> Point
 getPlayerLocation (Board ts ps cs l s dB uB (Player loc _ _ _ _ _ _) gs gOver timers) = loc
@@ -538,45 +626,36 @@ getPlayerLocation (Board ts ps cs l s dB uB (Player loc _ _ _ _ _ _) gs gOver ti
 getPlayerDestination :: Board -> Point
 getPlayerDestination (Board ts ps cs l s dB uB (Player _ (Destination pt, _) _ _ _ _ _) gs gOver timers) = pt
 
-dfsRefillV2 :: Int -> Board -> Point -> Neighbor ->  [Point] -> [Track]
-dfsRefillV2 order b dest (Neighbor (Destination pt) trackToNeighbor) visited
-  | pt == dest = trackToNeighbor
-  | pt `elem` visited = []
-  | otherwise = forEachNeighbor next
-  where 
-    next = getValidNeighbors b pt order -- why does 3 and 4 black screen of death the damn thing?????
-    forEachNeighbor [] = []
-    forEachNeighbor (n:neighbors) 
-      | null (dfsRefillV2 order b dest n (pt:visited)) = forEachNeighbor neighbors
-      | otherwise = trackToNeighbor ++ dfsRefillV2 order b dest n (pt:visited)
 
-
--- board, destination, current point, visited list -> how we got here -> path list -> RETURN the path to take
-dfsRefill :: Int -> Board -> Point -> [Neighbor] ->  [Point] -> [Track] -> [Track]
-dfsRefill order b dest ((Neighbor (Destination pt) trackToNeighbor):stack) visited path 
-  | not (null path) && notAdjacent pt (last path) = path
-  -- | null next = path
-  | pt == dest = path ++ trackToNeighbor -- pathToGetHere ++ trackToNeighbor
-  | otherwise = 
-    if pt `elem` visited 
-      then dfsRefill order b dest (stack) (visited) path
-      else  dfsRefill order b dest (next ++ stack) (pt:visited) (path ++ trackToNeighbor)
+meander :: Int -> Board -> Neighbor -> [Point] -> [Track] -> [Track]
+meander order b  (Neighbor (Destination pt) trackToNeighbor) visited path 
+  | null unvisited = path
+  | otherwise =  meander order b (head unvisited) (pt:visited) (path ++ trackToNeighbor)
   where 
     next = getValidNeighbors b pt order
+    unvisited = getUnvisited next visited
 
-bfsRefill :: Int -> Board -> Point -> [(Neighbor, [Track])] ->  [Point] -> [Track]
-bfsRefill order b dest ((Neighbor (Destination pt) tracksToNeighbor, path):queue) visited 
+getUnvisited :: [Neighbor] -> [Point] -> [Neighbor]
+getUnvisited [] _ = []
+getUnvisited ((Neighbor (Destination pt) track):ns) vis 
+  | pt `elem` vis = getUnvisited ns vis
+  | otherwise = (Neighbor (Destination pt) track) : getUnvisited ns vis
+
+
+
+nuke :: Int -> Board -> Point -> [(Neighbor, [Track])] ->  [Point] -> [Track]
+nuke order b dest ((Neighbor (Destination pt) tracksToNeighbor, path):queue) visited 
   | pt == dest = path ++ tracksToNeighbor
   | otherwise = 
     if pt `elem` visited 
-      then bfsRefill order b dest (queue) (visited) 
-      else  bfsRefill order b dest (queue ++ nextsWithPaths) (pt:visited)
+      then nuke order b dest (queue) (visited) 
+      else  nuke order b dest (queue ++ nextsWithPaths) (pt:visited)
       -- if not (null recur) then prev ++ recur else recur
   -- | otherwise = tracksToNeighbor ++ recur
   where
     next = getValidNeighbors b pt order
     nextsWithPaths = addPaths next (path ++ tracksToNeighbor)
-    -- recur = bfsRefill order b dest (queue ++ next) (pt:visited) tracksToNeighbor
+    -- recur = nuke order b dest (queue ++ next) (pt:visited) tracksToNeighbor
 
 addPaths :: [Neighbor] -> [Track] -> [(Neighbor, [Track])]
 addPaths [] path = []
@@ -595,7 +674,7 @@ notAdjacent (x1, y1) (x2, y2)
 
 getValidNeighbors :: Board -> Point -> Int -> [Neighbor]
 getValidNeighbors b pt arg
-  | arg == 1  = filter (/= Null) [up,  left, down, right]  
+  | arg == 1  = filter (/= Null) [up,  right, left, down]  
   | arg == 2 = filter (/= Null) [left, down, right, up]  
   | otherwise = filter (/= Null) [down, right, up,  left]  
   where 
