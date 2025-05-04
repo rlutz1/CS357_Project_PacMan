@@ -10,7 +10,7 @@ data Board =
     lives :: Int, -- for displaying lives
     score :: Int, -- for displaying the current score
     drawB :: Board -> [Picture],
-    updateB :: Board -> Board, 
+    updateB :: Board -> Float ->  Board, 
     -- handleB :: Event, -- MAYBE
     player :: Player,
     ghosts :: [Ghost],

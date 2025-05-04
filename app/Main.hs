@@ -57,8 +57,8 @@ drawMain (MainGameWorld (Board ts ps cs ls s dB uB p gs gOver timers) _ _ _) =
 drawMain _ = Blank
 
 updateMain :: Float -> World -> World 
-updateMain _ (MainGameWorld (Board ts ps cs ls s dB uB p gs gOver timers) d u h ) = 
-  MainGameWorld (uB (Board ts ps cs ls s dB uB p gs gOver timers)) d u h 
+updateMain dt (MainGameWorld (Board ts ps cs ls s dB uB p gs gOver timers) d u h ) = 
+  MainGameWorld (uB (Board ts ps cs ls s dB uB p gs gOver timers) dt) d u h 
 updateMain _ w = w
 
 handleMain :: Event -> World -> World

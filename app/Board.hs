@@ -5,17 +5,37 @@ import Data
 -- import Ghost
 -- import Player
 
-updateBoard :: Board -> Board
-updateBoard (Board ts ps cs ls s dB uB p gs gOver timers) = 
+updateBoard :: Board -> Float -> Board
+updateBoard (Board ts ps cs ls s dB uB p gs gOver timers) dt = 
   do
     let updatedP = updatePlayer p (Board ts ps cs ls s dB uB p gs gOver timers)
     let updatedGs = updateGhosts gs (Board ts ps cs ls s dB uB p gs gOver timers)
     let updatedColls = updateCollectibles (Board ts ps cs ls s dB uB updatedP updatedGs gOver timers)
-    let updatedEffects = updateEffects updatedColls
+    let updatedEffects = updateEffects updatedColls dt []
     checkCollision (updatedEffects) updatedP updatedGs
 
-updateEffects :: Board -> Board
-updateEffects b = b
+{-
+for checking the timers, removing effects as necessary.
+but we need to keep timers as they come
+
+what is this method doing? 
+
+it's basically there to see if the timer is up and revert
+-}
+updateEffects :: Board -> Float -> [(Effect, Float, Float)] -> Board
+updateEffects (Board ts ps cs lives s dB uB op ogs gOver []) dt acc = (Board ts ps cs lives s dB uB op ogs gOver acc)
+updateEffects (Board ts ps cs lives s dB uB op ogs gOver ((eff, timer, end):timers)) dt acc
+  | timesUp (eff, timer, end) = updateEffects (removeEffect (Board ts ps cs lives s dB uB op ogs gOver timers) (eff, timer, end)) dt acc
+  | otherwise = updateEffects (Board ts ps cs lives s dB uB op ogs gOver timers) dt ((eff, timer + dt , end):acc)--add time to timer and keep checking through
+
+removeEffect :: Board -> (Effect, Float, Float) -> Board
+removeEffect (Board ts ps cs lives s dB uB op ogs gOver timers) (NoEffect, _, _) = (Board ts ps cs lives s dB uB op ogs gOver timers) -- should never happen, but to be clean
+removeEffect (Board ts ps cs lives s dB uB (Player locP desP currP nextP dP uP coll) ogs gOver timers) ((GhostsOff _), _, _)
+  = (Board ts ps cs lives s dB uB (Player locP desP currP nextP drawPlayer uP True) ogs gOver timers)
+-- turn on coll detection. -- update the drawing func i think
+
+timesUp :: (Effect, Float, Float) -> Bool
+timesUp (_, timer, end) = timer >= end
 
 checkCollision :: Board -> Player -> [Ghost] -> Board
 checkCollision b p [] = b
@@ -28,7 +48,7 @@ checkCollision
  
 chugBeer :: Board -> Board
 chugBeer (Board ts ps cs lives s dB uB op ogs gOver timers) 
-  | checkGameOver (lives - 1) = Board ts ps cs lives s drawGameOver id op ogs True timers
+  | checkGameOver (lives - 1) = Board ts ps cs lives s drawGameOver (\b f -> b) op ogs True timers
   | otherwise = Board ts ps cs (lives - 1) s dB uB genPlayer genGhosts gOver timers
 
 drawGameOver :: Board -> [Picture]
@@ -72,7 +92,7 @@ updateCollectibles (Board ts ps cs l s d u (Player loc dest curr next dp up coll
     enactEffect filteredColls (findColl loc cs) (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver timers) 
   | otherwise = 
     if allEaten cs 
-      then Board ts ps cs l s drawGameWon id (Player loc dest curr next dp up collDetect) gs True timers
+      then Board ts ps cs l s drawGameWon (\b f -> b) (Player loc dest curr next dp up collDetect) gs True timers
       else Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver timers
   where
     filteredColls = filter (\c -> deconCollLoc c /= loc) cs
@@ -106,7 +126,7 @@ enactEffect -- maybe this could just take the player? if we're doing things else
   filteredColls -- filtered out the eaten coll
   (Just (Collectible (GhostsOff time) score color' pos)) -- this should always be given here  
   (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver timers) =
-    Board ts ps filteredColls l (s + score) d u (Player loc dest curr next dp up False) gs gOver (addToTimers (GhostsOff time) timers) -- the board
+    Board ts ps filteredColls l (s + score) d u (Player loc dest curr next test up False) gs gOver (addToTimers (GhostsOff time) timers) -- the board
 
 enactEffect -- maybe this could just take the player? if we're doing things elsewhere for the board
   filteredColls -- filtered out the eaten coll
@@ -115,6 +135,9 @@ enactEffect -- maybe this could just take the player? if we're doing things else
     Board ts ps filteredColls l (s + score) d u (Player loc dest curr next dp up collDetect) gs gOver timers
 
 enactEffect _ Nothing b = b -- this hypothetically should never happen, but here anyway
+
+test :: Player -> Picture
+test (Player (x, y) _ _ _ _ _ _) = color red (translate x y (thickCircle 10 20))
 
 addToTimers :: Effect -> [(Effect, Float, Float)] -> [(Effect, Float, Float)]
 -- addToTimers _ ts = ts
@@ -323,7 +346,7 @@ DRAWING FUNCTIONS
 
 -- todo: move drawplayer and draw ghosts here?
 drawBoard :: Board -> [Picture]
-drawBoard (Board ts ps cs l s d u p gs gOver timers) = drawScore s : drawLives l :  (drawGrid ts ++ drawCollectibles cs) ++ (drawPlayer p : drawGhosts gs)
+drawBoard (Board ts ps cs l s d u (Player locP desP currP nextP dP uP coll) gs gOver timers) = drawScore s : drawLives l :  (drawGrid ts ++ drawCollectibles cs) ++ ((dP (Player locP desP currP nextP dP uP coll)) : drawGhosts gs)
 
 drawGrid :: [Tile] -> [Picture] -- todo: change these to tail recursion
 drawGrid  [] = [] 
