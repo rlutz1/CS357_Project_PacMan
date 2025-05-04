@@ -6,29 +6,30 @@ import Data
 -- import Player
 
 updateBoard :: Board -> Board
-updateBoard (Board ts ps cs ls s dB uB p gs gOver) = 
+updateBoard (Board ts ps cs ls s dB uB p gs gOver timers) = 
   do
-    let updatedP = updatePlayer p (Board ts ps cs ls s dB uB p gs gOver)
-    let updatedGs = updateGhosts gs (Board ts ps cs ls s dB uB p gs gOver)
-    let updatedColls = updateCollectibles (Board ts ps cs ls s dB uB updatedP updatedGs gOver)
-    -- let updateEffects = updateEffects updatedP (board) -> Board
-    checkCollision (updatedColls) updatedP updatedGs
+    let updatedP = updatePlayer p (Board ts ps cs ls s dB uB p gs gOver timers)
+    let updatedGs = updateGhosts gs (Board ts ps cs ls s dB uB p gs gOver timers)
+    let updatedColls = updateCollectibles (Board ts ps cs ls s dB uB updatedP updatedGs gOver timers)
+    let updatedEffects = updateEffects updatedColls
+    checkCollision (updatedEffects) updatedP updatedGs
 
-
+updateEffects :: Board -> Board
+updateEffects b = b
 
 checkCollision :: Board -> Player -> [Ghost] -> Board
 checkCollision b p [] = b
 checkCollision 
-  (Board ts ps cs lives s dB uB op ogs gOver)
+  (Board ts ps cs lives s dB uB op ogs gOver timers)
   (Player locP desP currP nextP dP uP coll) 
   ((Ghost locG desG currG nextG dG uG):gs)
-    | coll = if collisionDetected locP locG then chugBeer (Board ts ps cs lives s dB uB op ogs gOver) else checkCollision (Board ts ps cs lives s dB uB op ogs gOver) (Player locP desP currP nextP dP uP coll) gs
-    | otherwise = Board ts ps cs lives s dB uB op ogs gOver
+    | coll = if collisionDetected locP locG then chugBeer (Board ts ps cs lives s dB uB op ogs gOver timers) else checkCollision (Board ts ps cs lives s dB uB op ogs gOver timers) (Player locP desP currP nextP dP uP coll) gs
+    | otherwise = Board ts ps cs lives s dB uB op ogs gOver timers
  
 chugBeer :: Board -> Board
-chugBeer (Board ts ps cs lives s dB uB op ogs gOver) 
-  | checkGameOver (lives - 1) = Board ts ps cs lives s drawGameOver id op ogs True
-  | otherwise = Board ts ps cs (lives - 1) s dB uB genPlayer genGhosts gOver
+chugBeer (Board ts ps cs lives s dB uB op ogs gOver timers) 
+  | checkGameOver (lives - 1) = Board ts ps cs lives s drawGameOver id op ogs True timers
+  | otherwise = Board ts ps cs (lives - 1) s dB uB genPlayer genGhosts gOver timers
 
 drawGameOver :: Board -> [Picture]
 drawGameOver b =  drawBoard b ++ drawGameOverNotification
@@ -66,13 +67,13 @@ what do we want to happen based on the cherry effect
 -}
 -- terribly inefficient, poorly organized, this would be better encapsed in player some how...but idk yet
 updateCollectibles :: Board -> Board 
-updateCollectibles (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver) 
+updateCollectibles (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver timers) 
   | length filteredColls < length cs = 
-    enactEffect filteredColls (findColl loc cs) (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver) 
+    enactEffect filteredColls (findColl loc cs) (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver timers) 
   | otherwise = 
     if allEaten cs 
-      then Board ts ps cs l s drawGameWon id (Player loc dest curr next dp up collDetect) gs True 
-      else Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver
+      then Board ts ps cs l s drawGameWon id (Player loc dest curr next dp up collDetect) gs True timers
+      else Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver timers
   where
     filteredColls = filter (\c -> deconCollLoc c /= loc) cs
 
@@ -84,7 +85,7 @@ need to update the ghost drawing function to be like white or some shit, basic u
 trickiest part: need to have some sort of timing mechanism.
 
 thots on timing.
-could add anothing thing to the player or board.
+could add another thing to the player or board.
 i like player more.
 it would be hypothetically reasonable to have many collectibles with diff effects
 have a [] of what would effectively be timers
@@ -103,11 +104,31 @@ i could give that to the update function and see how that works.
 
 enactEffect -- maybe this could just take the player? if we're doing things elsewhere for the board
   filteredColls -- filtered out the eaten coll
-  (Just (Collectible effect score color' pos)) -- this should always be given here  
-  (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver) -- the board
-  | effect == GhostsOff = Board ts ps filteredColls l (s + score) d u (Player loc dest curr next dp up False) gs gOver
-  | otherwise = Board ts ps filteredColls l (s + score) d u (Player loc dest curr next dp up collDetect) gs gOver
+  (Just (Collectible (GhostsOff time) score color' pos)) -- this should always be given here  
+  (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver timers) =
+    Board ts ps filteredColls l (s + score) d u (Player loc dest curr next dp up False) gs gOver (addToTimers (GhostsOff time) timers) -- the board
+
+enactEffect -- maybe this could just take the player? if we're doing things elsewhere for the board
+  filteredColls -- filtered out the eaten coll
+  (Just (Collectible _ score color' pos)) -- this should always be given here  
+  (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver timers) =
+    Board ts ps filteredColls l (s + score) d u (Player loc dest curr next dp up collDetect) gs gOver timers
+
 enactEffect _ Nothing b = b -- this hypothetically should never happen, but here anyway
+
+addToTimers :: Effect -> [(Effect, Float, Float)] -> [(Effect, Float, Float)]
+-- addToTimers _ ts = ts
+addToTimers NoEffect ts = ts
+addToTimers effect ts = go effect ts
+  where 
+    go eff [] = [(effect, 0, effectTime eff)]
+    go eff ((e, runtimetime, end):ts) 
+      | eff == e = (e, 0, end):ts
+      | otherwise = (e, runtimetime, end) : go eff ts
+
+effectTime :: Effect -> Float
+effectTime (GhostsOff time) = time
+effectTime NoEffect = 0
 
 drawGameWon :: Board -> [Picture]
 drawGameWon b =  drawBoard b ++ drawGameWonNotification
@@ -201,10 +222,10 @@ genTracks dir start end
 
 
 getPivot :: Point -> Board -> Maybe Pivot
-getPivot _ (Board _ [] _ _ _ _ _ _ _ _) = Nothing
-getPivot point (Board ts ((Pivot pt ns):ps) cs l s d u p gs gOver)
+getPivot _ (Board _ [] _ _ _ _ _ _ _ _ _) = Nothing
+getPivot point (Board ts ((Pivot pt ns):ps) cs l s d u p gs gOver timers)
   | point == pt = Just (Pivot pt ns)
-  | otherwise = getPivot point (Board ts ps cs l s d u p gs gOver) 
+  | otherwise = getPivot point (Board ts ps cs l s d u p gs gOver timers) 
 
 genPlayer :: Player 
 genPlayer = Player playerStartPoint (Destination playerStartPoint, []) NONE NONE drawPlayer updatePlayer True
@@ -218,74 +239,19 @@ specify walls by the center point only.
 -}
 
 lvl1Walls :: [Point]
-lvl1Walls =  [(-375, -375), 
-              (-375, -325), 
-              (-375, -275),
-              (-375, -225),
+lvl1Walls =  [
+  (-375, -375), 
+  (-375, -325), 
+  (-375, -275),
+  (-375, -225),
 
-              (-375, -125),
-              (-375, -75),
-              (-375, -25),
-
-              (-325, -275),
-              (-325, -75),
-
-              (-275, -375), 
-              (-275, -325), 
-              (-275, -275),
-              (-275, -225),
-
-              (-275, -125),
-              (-275, -75),
-              (-275, -25),
-
-              (-225, -275),
-              (-225, -75),
-
-              (-175, -375), 
-              (-175, -325), 
-              (-175, -275),
-              (-175, -225),
-
-              (-175, -125),
-              (-175, -75),
-              (-175, -25),
-              
-              (175, -375), 
-              (175, -325), 
-              (175, -275),
-              (175, -225),
-              
-              (175, -125),
-              (175, -75),
-              (175, -25),
-            
-              (225, -275),
-              (225, -75),
-
-              (275, -375), 
-              (275, -325), 
-              (275, -275),
-              (275, -225),
-
-              (275, -125),
-              (275, -75),
-              (275, -25),
-              
-              (325, -275),
-              (325, -75),
-
-              (375, -350), 
-              (375, -325), 
-              (375, -275),
-              (375, -225),
-
-              (375, -125),
-              (375, -75),
-              (375, -25)]
+  (-375, -125),
+  (-375, -75),
+  (-375, -25)
+  ]
 
 lvl1SpecialCollectibles :: [(Point, Collectible)] -- only the one for testing
-lvl1SpecialCollectibles = [((-375, -475), Collectible GhostsOff 5 red (-375, -475))]
+lvl1SpecialCollectibles = [((-375, -475), Collectible (GhostsOff 5.0) 5 red (-375, -475))]
 
 
 {-
@@ -322,8 +288,8 @@ billStartPoint = (75, 25)
 
 genLevel :: Int -> Board
 genLevel lvlNum 
-  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls) lvl1SpecialCollectibles) playerInitLives playerInitScore drawBoard updateBoard genPlayer [genBoomhauer] False
-  | otherwise = Board [] [] [] 0 0 drawBoard updateBoard genPlayer genGhosts False
+  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls) lvl1SpecialCollectibles) playerInitLives playerInitScore drawBoard updateBoard genPlayer genGhosts False []
+  | otherwise = Board [] [] [] 0 0 drawBoard updateBoard genPlayer genGhosts False []
 
 getTracks :: Maybe Pivot -> Direction -> Neighbor
 getTracks Nothing _ = Null
@@ -357,7 +323,7 @@ DRAWING FUNCTIONS
 
 -- todo: move drawplayer and draw ghosts here?
 drawBoard :: Board -> [Picture]
-drawBoard (Board ts ps cs l s d u p gs gOver) = drawScore s : drawLives l :  (drawGrid ts ++ drawCollectibles cs) ++ (drawPlayer p : drawGhosts gs)
+drawBoard (Board ts ps cs l s d u p gs gOver timers) = drawScore s : drawLives l :  (drawGrid ts ++ drawCollectibles cs) ++ (drawPlayer p : drawGhosts gs)
 
 drawGrid :: [Tile] -> [Picture] -- todo: change these to tail recursion
 drawGrid  [] = [] 
@@ -542,10 +508,10 @@ moveBill (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next
 --   | otherwise = Ghost t (Destination point, ts) curr next d u
 
 getPlayerLocation :: Board -> Point
-getPlayerLocation (Board ts ps cs l s dB uB (Player loc _ _ _ _ _ _) gs gOver) = loc
+getPlayerLocation (Board ts ps cs l s dB uB (Player loc _ _ _ _ _ _) gs gOver timers) = loc
 
 getPlayerDestination :: Board -> Point
-getPlayerDestination (Board ts ps cs l s dB uB (Player _ (Destination pt, _) _ _ _ _ _) gs gOver) = pt
+getPlayerDestination (Board ts ps cs l s dB uB (Player _ (Destination pt, _) _ _ _ _ _) gs gOver timers) = pt
 
 dfsRefillV2 :: Int -> Board -> Point -> Neighbor ->  [Point] -> [Track]
 dfsRefillV2 order b dest (Neighbor (Destination pt) trackToNeighbor) visited

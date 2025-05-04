@@ -14,8 +14,8 @@ data Board =
     -- handleB :: Event, -- MAYBE
     player :: Player,
     ghosts :: [Ghost],
-    gameOver :: Bool
-    -- effectTimers :: [(Effect, Float, Float)]
+    gameOver :: Bool,
+    effectTimers :: [(Effect, Float, Float)]
   }
   -- deriving (Eq, Show) 
 
@@ -57,7 +57,7 @@ data Direction = UP | DOWN | LEFT | RIGHT | NONE
 data Collectible = Collectible Effect Int Color Point
   deriving (Eq, Show) 
 
-data Effect = NoEffect | GhostsOff 
+data Effect = NoEffect | GhostsOff Float
   deriving (Eq, Show) 
 
 data Player = 
