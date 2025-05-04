@@ -22,7 +22,7 @@ main =
       window
       white
       75
-      getLevel1
+      getTitle
       draw
       handle            
       update
@@ -86,11 +86,16 @@ updateTitle :: Float -> World -> World
 updateTitle _ w = w 
 
 drawTitle :: World -> Picture
-drawTitle (TitleScreen _ _ _) = scale 0.5 0.5 (translate (-700) 0 (Text "Welcome to HaskMan!"))
+drawTitle (TitleScreen _ _ _) = Pictures [
+  scale 0.5 0.5 (translate (-700) 0 (Text "Welcome to HaskMan!")),
+  scale 0.25 0.25 (translate (-700) (-300) (Text "Press 1 for Level 1.")),
+  scale 0.25 0.25 (translate (-700) (-600) (Text "Press 2 for Level 2.")),
+  scale 0.25 0.25 (translate (-700) (-900) (Text "Press 3 for Level 3."))
+  ]
 drawTitle _ = Blank
 
 handleTitle :: Event -> World -> World
-handleTitle (EventKey (Char 'g') Down _ _) w = getLevel1
+handleTitle (EventKey (Char '1') Down _ _) w = getLevel1
 handleTitle _ w = w
 
 {-

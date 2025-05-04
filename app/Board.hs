@@ -60,7 +60,7 @@ drawGameOverNotification :: [Picture]
 drawGameOverNotification = [
   color (makeColor 0.616 0.616 0.616 1) (rectangleSolid 750 400),
   scale 0.25 0.25 (translate (-400) (200) (Text "YOU FAILED!")),
-  scale 0.25 0.25 (translate (-1250) (0) (Text "You did not escape the boys in the alley.")),
+  scale 0.25 0.25 (translate (-1250) (0) (Text "You did not escape the ghosts.")),
   scale 0.25 0.25 (translate (-800) (-200) (Text "Press G to back to menu"))
   ]
 
@@ -375,8 +375,16 @@ lvl1Walls =  [(-375, -375),
 
 lvl1SpecialCollectibles :: [Collectible] -- only the one for testing
 lvl1SpecialCollectibles = [
-  (Collectible (GhostsOff 5.0) 5 red (-375, -475)),
-  (Collectible (GhostsOff 5.0) 5 red (-275, -475))
+  Collectible (GhostsOff 5.0) 5 red (275, -475),
+  Collectible (GhostsOff 5.0) 5 red (-275, -475),
+  Collectible (GhostsOff 5.0) 5 red (275, 225),
+  Collectible (GhostsOff 5.0) 5 red (-275, 225),
+  Collectible (GhostsOff 5.0) 5 red (275, -175),
+  Collectible (GhostsOff 5.0) 5 red (-275, -175),
+  Collectible (GhostsOff 5.0) 5 red (-75, 125),
+  Collectible (GhostsOff 5.0) 5 red (75, 125)
+  
+
   ]
 
 
