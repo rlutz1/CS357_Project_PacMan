@@ -31,7 +31,7 @@ updateEffects (Board ts ps cs lives s dB uB op ogs gOver ((eff, timer, end):time
 removeEffect :: Board -> (Effect, Float, Float) -> Board
 removeEffect (Board ts ps cs lives s dB uB op ogs gOver timers) (NoEffect, _, _) = (Board ts ps cs lives s dB uB op ogs gOver timers) -- should never happen, but to be clean
 removeEffect (Board ts ps cs lives s dB uB (Player locP desP currP nextP dP uP coll) ogs gOver timers) ((GhostsOff _), _, _)
-  = (Board ts ps cs lives s dB uB (Player locP desP currP nextP drawPlayer uP True) ogs gOver timers)
+  = Board ts ps cs lives s dB uB (Player locP desP currP nextP dP uP True) (drawGhostsOn ogs) gOver timers
 -- turn on coll detection. -- update the drawing func i think
 
 timesUp :: (Effect, Float, Float) -> Bool
@@ -42,7 +42,7 @@ checkCollision b p [] = b
 checkCollision 
   (Board ts ps cs lives s dB uB op ogs gOver timers)
   (Player locP desP currP nextP dP uP coll) 
-  ((Ghost locG desG currG nextG dG uG):gs)
+  ((Ghost name locG desG currG nextG dG uG):gs)
     | coll = if collisionDetected locP locG then chugBeer (Board ts ps cs lives s dB uB op ogs gOver timers) else checkCollision (Board ts ps cs lives s dB uB op ogs gOver timers) (Player locP desP currP nextP dP uP coll) gs
     | otherwise = Board ts ps cs lives s dB uB op ogs gOver timers
  
@@ -126,7 +126,7 @@ enactEffect -- maybe this could just take the player? if we're doing things else
   filteredColls -- filtered out the eaten coll
   (Just (Collectible (GhostsOff time) score color' pos)) -- this should always be given here  
   (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver timers) =
-    Board ts ps filteredColls l (s + score) d u (Player loc dest curr next test up False) gs gOver (addToTimers (GhostsOff time) timers) -- the board
+    Board ts ps filteredColls l (s + score) d u (Player loc dest curr next dp up False) (drawGhostsOff gs) gOver (addToTimers (GhostsOff time) timers) -- the board
 
 enactEffect -- maybe this could just take the player? if we're doing things elsewhere for the board
   filteredColls -- filtered out the eaten coll
@@ -136,8 +136,21 @@ enactEffect -- maybe this could just take the player? if we're doing things else
 
 enactEffect _ Nothing b = b -- this hypothetically should never happen, but here anyway
 
-test :: Player -> Picture
-test (Player (x, y) _ _ _ _ _ _) = color red (translate x y (thickCircle 10 20))
+drawGhostsOff :: [Ghost] -> [Ghost]
+drawGhostsOff [] = []
+drawGhostsOff ((Ghost name locG desG currG nextG _ uG):gs) = Ghost name locG desG currG nextG (drawGhost white) uG : drawGhostsOff gs
+
+drawGhostsOn :: [Ghost] -> [Ghost]
+drawGhostsOn  [] = []
+drawGhostsOn  ((Ghost name locG desG currG nextG _ uG):gs)
+    | name == "Blinky" = Ghost name locG desG currG nextG (drawGhost blinkyDefColor) uG : drawGhostsOn gs
+    | name == "Inky"   = Ghost name locG desG currG nextG (drawGhost inkyDefColor) uG : drawGhostsOn gs
+    | name == "Pinky"  = Ghost name locG desG currG nextG (drawGhost pinkyDefColor) uG : drawGhostsOn gs
+    | otherwise        = Ghost name locG desG currG nextG (drawGhost clydeDefColor) uG : drawGhostsOn gs
+-- test :: Player -> Picture
+-- test (Player (x, y) _ _ _ _ _ _) = color red (translate x y (thickCircle 10 20))
+
+
 
 addToTimers :: Effect -> [(Effect, Float, Float)] -> [(Effect, Float, Float)]
 -- addToTimers _ ts = ts
@@ -214,11 +227,10 @@ handlers for the underlying movement mechanic, known as tracks.
 genPivots :: [Point] -> [Pivot]
 genPivots walls = [ Pivot p (getNeighbor UP p walls, getNeighbor DOWN p walls, getNeighbor LEFT p walls, getNeighbor RIGHT p walls) | p <- genCenters, notElem p walls]
 
-genCollectibles :: [Point] -> [(Point, Collectible)] -> [Collectible] -- for now, to get some basic ones "installed"
-genCollectibles walls specials = specialColls ++ [ Collectible NoEffect 10 orange p | p <- genCenters, notElem p walls, notElem p specialPoints]
+genCollectibles :: [Point] -> [Collectible] -> [Collectible] -- for now, to get some basic ones "installed"
+genCollectibles walls specials = specials ++ [ Collectible NoEffect 10 orange p | p <- genCenters, notElem p walls, notElem p specialPoints]
   where
-    specialPoints = [ p | (p, _) <- specials ]
-    specialColls = [ c | (_, c) <- specials ]
+    specialPoints = [ pt | (Collectible _ _ _ pt) <- specials ]
 
 genCenters :: [Point]
 genCenters = [ (x, y) | x <- [-475, -425..475], y <- [-475, -425..225] ]
@@ -273,8 +285,11 @@ lvl1Walls =  [
   (-375, -25)
   ]
 
-lvl1SpecialCollectibles :: [(Point, Collectible)] -- only the one for testing
-lvl1SpecialCollectibles = [((-375, -475), Collectible (GhostsOff 5.0) 5 red (-375, -475))]
+lvl1SpecialCollectibles :: [Collectible] -- only the one for testing
+lvl1SpecialCollectibles = [
+  (Collectible (GhostsOff 5.0) 5 red (-375, -475)),
+  (Collectible (GhostsOff 5.0) 5 red (-275, -475))
+  ]
 
 
 {-
@@ -297,17 +312,17 @@ playerInitLives = 3 -- todo: 3 for final
 playerInitScore :: Int
 playerInitScore = 0
 
-hankStartPoint :: Point
-hankStartPoint = (475, 225)
+blinkyStartPoint :: Point
+blinkyStartPoint = (475, 225)
 
-daleStartPoint :: Point
-daleStartPoint = (475, -475)
+pinkyStartPoint :: Point
+pinkyStartPoint = (475, -475)
 
-boomhauerStartPoint :: Point
-boomhauerStartPoint = (-475, 225)
+inkyStartPoint :: Point
+inkyStartPoint = (-475, 225)
 
-billStartPoint :: Point
-billStartPoint = (75, 25)
+clydeStartPoint :: Point
+clydeStartPoint = (75, 25)
 
 genLevel :: Int -> Board
 genLevel lvlNum 
@@ -380,38 +395,10 @@ drawGhosts :: [Ghost] -> [Picture]
 drawGhosts gs = go [] gs--foldr go [] gs --go gs board []
   where 
     go acc [] = acc
-    go acc ((Ghost loc path curr next d u):gs) = go (d (Ghost loc path curr next d u) : acc) gs 
+    go acc ((Ghost name loc path curr next d u):gs) = go (d (Ghost name loc path curr next d u) : acc) gs 
 
--- note: get colord for make color by x / 255. friggin clamped [0, 1] not [0, 255] lol
--- rgb(137, 61, 2)
-drawHank :: Ghost -> Picture
-drawHank (Ghost (x, y) _ _ _ _ _) = color c (translate x y (thickCircle 10 20))
-  where 
-    c = makeColor 0.537 0.239 0.008 1
-
--- rgb(211, 40, 10) 
-drawDale :: Ghost -> Picture
-drawDale (Ghost (x, y) _ _ _ _ _) = color c (translate x y (thickCircle 10 20))
-  where 
-    c = makeColor 0.827 0.157 0.039 1
---rgba(255, 255, 255, 0)
--- rgb(225, 230, 144)
-drawBoomhauer :: Ghost -> Picture
-drawBoomhauer (Ghost (x, y) _ _ _ _ _) = color c (translate x y (thickCircle 10 20))
-  where 
-    c = makeColor 0.882 0.901 0.565 1
-
--- rgb(206, 167, 120) 
-drawBill :: Ghost -> Picture
-drawBill (Ghost (x, y) _ _ _ _ _) = color c (translate x y (thickCircle 10 20))
-  where
-    c = makeColor 0.808 0.655 0.471 1 
-
-
-
-
-
-
+drawGhost :: Color -> Ghost -> Picture
+drawGhost c (Ghost _ (x, y) _ _ _ _ _) = color c (translate x y (thickCircle 10 20))
 
 
 
@@ -426,23 +413,34 @@ drawBill (Ghost (x, y) _ _ _ _ _) = color c (translate x y (thickCircle 10 20))
 --  }
 
 genGhosts :: [Ghost]
-genGhosts = [genHank, genDale, genBoomhauer, genBill]
+genGhosts = [genBlinky, genPinky, genInky, genClyde]
+-- Blinky, Pinky, Inky and Clyde,
+genBlinky :: Ghost
+genBlinky = Ghost "Blinky" blinkyStartPoint (Destination blinkyStartPoint, []) NONE NONE (drawGhost blinkyDefColor) updateBlinky
 
-genHank :: Ghost
-genHank = Ghost hankStartPoint (Destination hankStartPoint, []) NONE NONE drawHank updateHank
+genPinky :: Ghost
+genPinky = Ghost "Pinky" pinkyStartPoint (Destination pinkyStartPoint, []) NONE NONE (drawGhost pinkyDefColor) updatePinky
 
-genDale :: Ghost
-genDale = Ghost daleStartPoint (Destination daleStartPoint, []) NONE NONE drawDale updateDale
+genInky :: Ghost
+genInky = Ghost "Inky" inkyStartPoint (Destination inkyStartPoint, []) NONE NONE (drawGhost inkyDefColor) updateInky
 
-genBoomhauer :: Ghost
-genBoomhauer = Ghost boomhauerStartPoint (Destination boomhauerStartPoint, []) NONE NONE drawBoomhauer updateBoomhauer
+genClyde :: Ghost
+genClyde = Ghost "Clyde" clydeStartPoint (Destination clydeStartPoint, []) NONE NONE (drawGhost clydeDefColor) updateClyde
 
-genBill :: Ghost
-genBill = Ghost billStartPoint (Destination billStartPoint, []) NONE NONE drawBill updateBill
+blinkyDefColor :: Color
+blinkyDefColor = red
 
+-- rgb(229, 99, 199) 
+pinkyDefColor :: Color
+pinkyDefColor = makeColor 0.898 0.388 0.780 1 
 
+-- rgb(67, 201, 225) 
+inkyDefColor :: Color
+inkyDefColor = makeColor 0.262 0.788 0.88 1
 
-
+-- rgb(222, 174, 62) 
+clydeDefColor :: Color
+clydeDefColor = makeColor 0.871 0.675 0.243 1 
 {-
 ------------------------------------------------------------
 UPDATE FUNCTIONS
@@ -453,19 +451,19 @@ updateGhosts :: [Ghost] -> Board -> [Ghost]
 updateGhosts gs board = go [] gs board--foldr go [] gs --go gs board []
   where 
     go acc [] _ = acc
-    go acc ((Ghost loc path curr next d u):gs) board = go (u (Ghost loc path curr next d u) board : acc) gs board
+    go acc ((Ghost name loc path curr next d u):gs) board = go (u (Ghost name loc path curr next d u) board : acc) gs board
 
-updateHank :: Ghost -> Board -> Ghost
-updateHank g board = moveHank g board
+updateBlinky :: Ghost -> Board -> Ghost
+updateBlinky g board = moveBlinky g board
 
-updateDale :: Ghost -> Board -> Ghost
-updateDale g board = moveDale g board
+updatePinky :: Ghost -> Board -> Ghost
+updatePinky g board = movePinky g board
 
-updateBoomhauer :: Ghost -> Board -> Ghost
-updateBoomhauer g board = moveBoomhauer g board
+updateInky :: Ghost -> Board -> Ghost
+updateInky g board = moveInky g board
 
-updateBill :: Ghost -> Board -> Ghost
-updateBill g board = moveBill g board
+updateClyde :: Ghost -> Board -> Ghost
+updateClyde g board = moveClyde g board
 
 {-
 ------------------------------------------------------------
@@ -485,31 +483,34 @@ GHOST MOVEMENT FUNCTIONS
 -- i may not need directions for the ghosts
 -- below are where the ai decision making movesments should live
 
-moveHank :: Ghost -> Board -> Ghost
-moveHank (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
-moveHank (Ghost loc (Destination point, [t]) curr next d u) b = 
-  Ghost t (Destination  (getPlayerDestination b), bfsRefill 1 b (getPlayerDestination b) (addPaths (getValidNeighbors b loc 1) []) [point]) curr next d u
-moveHank (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
+moveBlinky :: Ghost -> Board -> Ghost
+moveBlinky (Ghost name loc (Destination point, []) curr next d u) b 
+  = Ghost name loc (Destination point, [loc]) curr next d u
+moveBlinky (Ghost name loc (Destination point, [t]) curr next d u) b 
+  = Ghost name t (Destination  (getPlayerDestination b), bfsRefill 1 b (getPlayerDestination b) (addPaths (getValidNeighbors b loc 1) []) [point]) curr next d u
+moveBlinky (Ghost name loc (dest, t:ts) curr next d u) _ = Ghost name t (dest, ts) curr next d u
 
 
-moveDale :: Ghost -> Board -> Ghost
-moveDale (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
-moveDale (Ghost (x, y) (Destination point, [t]) curr next d u) b = 
-  Ghost t (Destination  (getPlayerDestination b), dfsRefill (getRandomOrder x) b (getPlayerDestination b) (getValidNeighbors b (x, y) (getRandomOrder x)) [point] []) curr next d u
-moveDale (Ghost (x, y) (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
+movePinky :: Ghost -> Board -> Ghost
+movePinky (Ghost name loc (Destination point, []) curr next d u) b 
+  = Ghost name loc (Destination point, [loc]) curr next d u
+movePinky (Ghost name (x, y) (Destination point, [t]) curr next d u) b
+  = Ghost name t (Destination  (getPlayerDestination b), dfsRefill (getRandomOrder x) b (getPlayerDestination b) (getValidNeighbors b (x, y) (getRandomOrder x)) [point] []) curr next d u
+movePinky (Ghost name (x, y) (dest, t:ts) curr next d u) _ = Ghost name t (dest, ts) curr next d u
 
 getRandomOrder :: Float -> Int
 getRandomOrder x = (abs (round x) * 7) `mod` 2
 -- getRandomOrder :: Float -> Int
 -- getRandomOrder _ = 2
 
-moveBoomhauer :: Ghost -> Board -> Ghost
-moveBoomhauer (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
-moveBoomhauer (Ghost (x, y) (Destination point, [t]) curr next d u) b = 
-  Ghost t (Destination  (getPlayerDestination b), dfsRefillV2 (getRandomOrder y) b (getPlayerDestination b) (head (getValidNeighbors b (x, y) (getRandomOrder y))) [point]) curr next d u
-moveBoomhauer (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
--- moveBoomhauer (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
--- moveBoomhauer (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
+moveInky :: Ghost -> Board -> Ghost
+moveInky (Ghost name loc (Destination point, []) curr next d u) b 
+  = Ghost name loc (Destination point, [loc]) curr next d u
+moveInky (Ghost name (x, y) (Destination point, [t]) curr next d u) b 
+  = Ghost name t (Destination  (getPlayerDestination b), dfsRefillV2 (getRandomOrder y) b (getPlayerDestination b) (head (getValidNeighbors b (x, y) (getRandomOrder y))) [point]) curr next d u
+moveInky (Ghost name loc (dest, t:ts) curr next d u) _ = Ghost name t (dest, ts) curr next d u
+-- moveInky (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
+-- moveInky (Ghost loc (Destination point, [t]) curr next d u) b = Ghost t (deconDestination (head validDirs), deconTracks (head validDirs)) curr next d u
 --   where 
 --     nextPiv = getPivot point b
 --     up = getTracks nextPiv UP
@@ -517,15 +518,16 @@ moveBoomhauer (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr
 --     left = getTracks nextPiv LEFT
 --     right = getTracks nextPiv RIGHT
 --     validDirs = dumbShuffle (filter (/= Null) [up,  right, down, left ])
--- moveBoomhauer (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
+-- moveInky (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
 
-moveBill :: Ghost -> Board -> Ghost
-moveBill (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
-moveBill (Ghost (x, y) (Destination point, [t]) curr next d u) b = 
-  Ghost t (Destination  (getPlayerDestination b), dfsRefill (getRandomOrder x) b (getPlayerDestination b) (getValidNeighbors b (x, y) (getRandomOrder x)) [point] []) curr next d u
-moveBill (Ghost loc (dest, t:ts) curr next d u) _ = Ghost t (dest, ts) curr next d u
--- moveBill (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
--- moveBill (Ghost loc (Destination point, (t:ts)) curr next d u) b
+moveClyde :: Ghost -> Board -> Ghost
+moveClyde (Ghost name loc (Destination point, []) curr next d u) b 
+  = Ghost name loc (Destination point, [loc]) curr next d u
+moveClyde (Ghost name (x, y) (Destination point, [t]) curr next d u) b 
+  = Ghost name t (Destination  (getPlayerDestination b), dfsRefill (getRandomOrder x) b (getPlayerDestination b) (getValidNeighbors b (x, y) (getRandomOrder x)) [point] []) curr next d u
+moveClyde (Ghost name loc (dest, t:ts) curr next d u) _ = Ghost name t (dest, ts) curr next d u
+-- moveClyde (Ghost loc (Destination point, []) curr next d u) b  = Ghost loc (Destination point, [loc]) curr next d u
+-- moveClyde (Ghost loc (Destination point, (t:ts)) curr next d u) b
 --   | length ts < 50 =
 --     Ghost t (Destination  (getPlayerDestination b), ts ++ dfsRefill b (getPlayerDestination b) (getValidNeighbors b point) [] []) curr next d u
 --   | otherwise = Ghost t (Destination point, ts) curr next d u
@@ -617,12 +619,6 @@ getNeighborTrack _ = error "don't give this null, dummy"
 getPiv :: Maybe Pivot -> Pivot
 getPiv (Just pv) = pv
 getPiv _ = error "don't give nothing please"  
-
-dumbShuffle :: [a] -> [a]
-dumbShuffle xs = tail r ++ [head r]
-  where 
-    r = reverse xs
-
 
 
 

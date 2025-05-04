@@ -73,6 +73,7 @@ data Player =
   
 data Ghost = 
   Ghost {
+    name :: String,
     locationG :: Point,
     pathG :: (Destination, [Track]),
     currDirectionG :: Direction, 
