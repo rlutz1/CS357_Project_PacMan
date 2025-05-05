@@ -512,16 +512,16 @@ genGhosts :: [Ghost]
 genGhosts = [genBlinky, genPinky, genInky, genClyde]
 -- Blinky, Pinky, Inky and Clyde,
 genBlinky :: Ghost
-genBlinky = Ghost "Blinky" blinkyStartPoint (Destination blinkyStartPoint, []) NONE NONE (drawGhost blinkyDefColor) updateBlinky (uniformRs (10, 100) (mkStdGen 42) :: [Int])
+genBlinky = Ghost "Blinky" blinkyStartPoint (Destination blinkyStartPoint, []) NONE NONE (drawGhost blinkyDefColor) updateBlinky (uniforms (mkStdGen 42) :: [Int])
 
 genPinky :: Ghost
-genPinky = Ghost "Pinky" pinkyStartPoint (Destination pinkyStartPoint, []) NONE NONE (drawGhost pinkyDefColor) updatePinky (uniformRs (10, 100) (mkStdGen 79) :: [Int])
+genPinky = Ghost "Pinky" pinkyStartPoint (Destination pinkyStartPoint, []) NONE NONE (drawGhost pinkyDefColor) updatePinky (uniforms (mkStdGen 79) :: [Int])
 
 genInky :: Ghost
-genInky = Ghost "Inky" inkyStartPoint (Destination inkyStartPoint, []) NONE NONE (drawGhost inkyDefColor) updateInky (uniformRs (10, 100) (mkStdGen 7) :: [Int])
+genInky = Ghost "Inky" inkyStartPoint (Destination inkyStartPoint, []) NONE NONE (drawGhost inkyDefColor) updateInky (uniforms (mkStdGen 7) :: [Int])
 
 genClyde :: Ghost
-genClyde = Ghost "Clyde" clydeStartPoint (Destination clydeStartPoint, []) NONE NONE (drawGhost clydeDefColor) updateClyde (uniformRs (10, 100) (mkStdGen 782) :: [Int])
+genClyde = Ghost "Clyde" clydeStartPoint (Destination clydeStartPoint, []) NONE NONE (drawGhost clydeDefColor) updateClyde (uniforms (mkStdGen 782) :: [Int])
 
 blinkyDefColor :: Color
 blinkyDefColor = red
