@@ -79,5 +79,6 @@ data Ghost =
     currDirectionG :: Direction, 
     nextDirectionG :: Direction,
     drawG :: Ghost -> Picture,
-    updateG :: Ghost -> Board -> Ghost
+    updateG :: Ghost -> Board -> Ghost,
+    inf :: [Int]
  }

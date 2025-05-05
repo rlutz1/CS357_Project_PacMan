@@ -3,6 +3,8 @@ module Board where
 
 import Brillo
 import Data
+import Data.Word
+import System.Random
 -- import Ghost
 -- import Player
 
@@ -43,7 +45,7 @@ checkCollision b p [] = b
 checkCollision 
   (Board ts ps cs lives s dB uB op ogs gOver timers)
   (Player locP desP currP nextP dP uP coll) 
-  ((Ghost name locG desG currG nextG dG uG):gs)
+  ((Ghost name locG desG currG nextG dG uG inf):gs)
     | coll = if collisionDetected locP locG then chugBeer (Board ts ps cs lives s dB uB op ogs gOver timers) else checkCollision (Board ts ps cs lives s dB uB op ogs gOver timers) (Player locP desP currP nextP dP uP coll) gs
     | otherwise = Board ts ps cs lives s dB uB op ogs gOver timers
  
@@ -139,15 +141,15 @@ enactEffect _ Nothing b = b -- this hypothetically should never happen, but here
 
 drawGhostsOff :: [Ghost] -> [Ghost]
 drawGhostsOff [] = []
-drawGhostsOff ((Ghost name locG desG currG nextG _ uG):gs) = Ghost name locG desG currG nextG (drawGhost white) uG : drawGhostsOff gs
+drawGhostsOff ((Ghost name locG desG currG nextG _ uG inf):gs) = Ghost name locG desG currG nextG (drawGhost white) uG inf : drawGhostsOff gs
 
 drawGhostsOn :: [Ghost] -> [Ghost]
 drawGhostsOn  [] = []
-drawGhostsOn  ((Ghost name locG desG currG nextG _ uG):gs)
-    | name == "Blinky" = Ghost name locG desG currG nextG (drawGhost blinkyDefColor) uG : drawGhostsOn gs
-    | name == "Inky"   = Ghost name locG desG currG nextG (drawGhost inkyDefColor) uG : drawGhostsOn gs
-    | name == "Pinky"  = Ghost name locG desG currG nextG (drawGhost pinkyDefColor) uG : drawGhostsOn gs
-    | otherwise        = Ghost name locG desG currG nextG (drawGhost clydeDefColor) uG : drawGhostsOn gs
+drawGhostsOn  ((Ghost name locG desG currG nextG _ uG inf):gs)
+    | name == "Blinky" = Ghost name locG desG currG nextG (drawGhost blinkyDefColor) uG inf : drawGhostsOn gs
+    | name == "Inky"   = Ghost name locG desG currG nextG (drawGhost inkyDefColor) uG inf : drawGhostsOn gs
+    | name == "Pinky"  = Ghost name locG desG currG nextG (drawGhost pinkyDefColor) uG inf : drawGhostsOn gs
+    | otherwise        = Ghost name locG desG currG nextG (drawGhost clydeDefColor) uG inf : drawGhostsOn gs
 -- test :: Player -> Picture
 -- test (Player (x, y) _ _ _ _ _ _) = color red (translate x y (thickCircle 10 20))
 
@@ -489,10 +491,10 @@ drawGhosts :: [Ghost] -> [Picture]
 drawGhosts gs = go [] gs--foldr go [] gs --go gs board []
   where 
     go acc [] = acc
-    go acc ((Ghost name loc path curr next d u):gs) = go (d (Ghost name loc path curr next d u) : acc) gs 
+    go acc ((Ghost name loc path curr next d u inf):gs) = go (d (Ghost name loc path curr next d u inf) : acc) gs 
 
 drawGhost :: Color -> Ghost -> Picture
-drawGhost c (Ghost _ (x, y) _ _ _ _ _) = color c (translate x y (thickCircle 10 20))
+drawGhost c (Ghost _ (x, y) _ _ _ _ _ _) = color c (translate x y (thickCircle 10 20))
 
 
 
@@ -510,16 +512,16 @@ genGhosts :: [Ghost]
 genGhosts = [genBlinky, genPinky, genInky, genClyde]
 -- Blinky, Pinky, Inky and Clyde,
 genBlinky :: Ghost
-genBlinky = Ghost "Blinky" blinkyStartPoint (Destination blinkyStartPoint, []) NONE NONE (drawGhost blinkyDefColor) updateBlinky
+genBlinky = Ghost "Blinky" blinkyStartPoint (Destination blinkyStartPoint, []) NONE NONE (drawGhost blinkyDefColor) updateBlinky (uniformRs (10, 100) (mkStdGen 42) :: [Int])
 
 genPinky :: Ghost
-genPinky = Ghost "Pinky" pinkyStartPoint (Destination pinkyStartPoint, []) NONE NONE (drawGhost pinkyDefColor) updatePinky
+genPinky = Ghost "Pinky" pinkyStartPoint (Destination pinkyStartPoint, []) NONE NONE (drawGhost pinkyDefColor) updatePinky (uniformRs (10, 100) (mkStdGen 79) :: [Int])
 
 genInky :: Ghost
-genInky = Ghost "Inky" inkyStartPoint (Destination inkyStartPoint, []) NONE NONE (drawGhost inkyDefColor) updateInky
+genInky = Ghost "Inky" inkyStartPoint (Destination inkyStartPoint, []) NONE NONE (drawGhost inkyDefColor) updateInky (uniformRs (10, 100) (mkStdGen 7) :: [Int])
 
 genClyde :: Ghost
-genClyde = Ghost "Clyde" clydeStartPoint (Destination clydeStartPoint, []) NONE NONE (drawGhost clydeDefColor) updateClyde
+genClyde = Ghost "Clyde" clydeStartPoint (Destination clydeStartPoint, []) NONE NONE (drawGhost clydeDefColor) updateClyde (uniformRs (10, 100) (mkStdGen 782) :: [Int])
 
 blinkyDefColor :: Color
 blinkyDefColor = red
@@ -545,7 +547,7 @@ updateGhosts :: [Ghost] -> Board -> [Ghost]
 updateGhosts gs board = go [] gs board--foldr go [] gs --go gs board []
   where 
     go acc [] _ = acc
-    go acc ((Ghost name loc path curr next d u):gs) board = go (u (Ghost name loc path curr next d u) board : acc) gs board
+    go acc ((Ghost name loc path curr next d u inf):gs) board = go (u (Ghost name loc path curr next d u inf) board : acc) gs board
 
 updateBlinky :: Ghost -> Board -> Ghost
 updateBlinky g board = moveBlinky g board
@@ -579,23 +581,23 @@ GHOST MOVEMENT FUNCTIONS
 
 -- the nuke
 moveBlinky :: Ghost -> Board -> Ghost
-moveBlinky (Ghost name loc (Destination point, []) curr next d u) b 
-  = Ghost name loc (Destination point, [loc]) curr next d u
-moveBlinky (Ghost name loc (Destination point, [t]) curr next d u) b 
-  = Ghost name t (Destination  (getPlayerDestination b), nuke 1 b (getPlayerDestination b) (addPaths (getValidNeighbors b loc 1) []) [point]) curr next d u
-moveBlinky (Ghost name loc (dest, t:ts) curr next d u) _ = Ghost name t (dest, ts) curr next d u
+moveBlinky (Ghost name loc (Destination point, []) curr next d u inf) b 
+  = Ghost name loc (Destination point, [loc]) curr next d u inf
+moveBlinky (Ghost name loc (Destination point, [t]) curr next d u inf) b 
+  = Ghost name t (Destination  (getPlayerDestination b), nuke 1 b (getPlayerDestination b) (addPaths (getValidNeighbors b loc 1) []) [point]) curr next d u inf
+moveBlinky (Ghost name loc (dest, t:ts) curr next d u inf) _ = Ghost name t (dest, ts) curr next d u inf
 
 -- the nuke but only within line of sight, otherwise meanderer
 movePinky :: Ghost -> Board -> Ghost
-movePinky (Ghost name loc (Destination point, []) curr next d u) b 
-  = Ghost name loc (Destination point, [loc]) curr next d u
+movePinky (Ghost name loc (Destination point, []) curr next d u inf) b 
+  = Ghost name loc (Destination point, [loc]) curr next d u inf
 
-movePinky (Ghost name (x, y) (Destination point, [t]) curr next d u) b
-  | sameCol (getPlayerLocation b) (x, y) || sameRow (getPlayerLocation b) (x, y) = Ghost name t (Destination (getPlayerDestination b), nuke (getRandomOrder x) b (getPlayerDestination b) (addPaths (getValidNeighbors b (x, y) (getRandomOrder x)) []) [point]) curr next d u -- NUKE
-  | otherwise = Ghost name t (Destination  (getPlayerDestination b), meander (getRandomOrder x) b (head (getValidNeighbors b (x, y) (getRandomOrder x))) [point] []) curr next d u
+movePinky (Ghost name (x, y) (Destination point, [t]) curr next d u inf) b
+  | sameCol (getPlayerLocation b) (x, y) || sameRow (getPlayerLocation b) (x, y) = Ghost name t (Destination (getPlayerDestination b), nuke (getRandomOrder x) b (getPlayerDestination b) (addPaths (getValidNeighbors b (x, y) (getRandomOrder x)) []) [point]) curr next d u inf-- NUKE
+  | otherwise = Ghost name t (Destination  (getPlayerDestination b), meander (head inf) b (giveRandomNeighbor (getValidNeighbors b (x, y) (head inf)) (head inf)) [point] []) curr next d u (tail inf)
   -- = Ghost name t (Destination  (getPlayerDestination b), meander (getRandomOrder x) b (head (getValidNeighbors b (x, y) (getRandomOrder x))) [point] []) curr next d u 
 
-movePinky (Ghost name loc (Destination point, t:ts) curr next d u) b = Ghost name t (Destination point, ts) curr next d u 
+movePinky (Ghost name loc (Destination point, t:ts) curr next d u inf) b = Ghost name t (Destination point, ts) curr next d u inf
   -- | withinLineOfSight (getPlayerLocation b) loc = Ghost name loc (Destination (getPlayerDestination b), nuke 1 b (getPlayerDestination b) (addPaths (getValidNeighbors b loc 1) []) [point]) curr next d u -- NUKE
   -- | otherwise = Ghost name t (Destination point, ts) curr next d u -- just continue on
 
@@ -604,27 +606,34 @@ withinLineOfSight p g = sameCol p g || sameRow p g
 
 
 
-getRandomOrder :: Float -> Int
+getRandomOrder :: Float -> Int -- REMOVE
 getRandomOrder x = (abs (round x) * 7) `mod` 2
 -- getRandomOrder :: Float -> Int
 -- getRandomOrder _ = 2
 
 -- a meanderer
 moveInky :: Ghost -> Board -> Ghost
-moveInky (Ghost name loc (Destination point, []) curr next d u) b 
-  = Ghost name loc (Destination point, [loc]) curr next d u
-moveInky (Ghost name (x, y) (Destination point, [t]) curr next d u) b 
-  = Ghost name t (Destination  (getPlayerDestination b), meander (getRandomOrder y) b (head (getValidNeighbors b (x, y) (getRandomOrder x))) [point] []) curr next d u
-moveInky (Ghost name loc (dest, t:ts) curr next d u) _ = Ghost name t (dest, ts) curr next d u
+moveInky (Ghost name loc (Destination point, []) curr next d u inf) b 
+  = Ghost name loc (Destination point, [loc]) curr next d u inf
+moveInky (Ghost name (x, y) (Destination point, [t]) curr next d u inf) b 
+  = Ghost name t (Destination  (getPlayerDestination b), meander (head inf) b (giveRandomNeighbor (getValidNeighbors b (x, y) (head inf)) (head inf)) [point] []) curr next d u (tail inf)
+moveInky (Ghost name loc (dest, t:ts) curr next d u inf) _ = Ghost name t (dest, ts) curr next d u inf
 
 -- a meanderer
 moveClyde :: Ghost -> Board -> Ghost
-moveClyde (Ghost name loc (Destination point, []) curr next d u) b 
-  = Ghost name loc (Destination point, [loc]) curr next d u
-moveClyde (Ghost name (x, y) (Destination point, [t]) curr next d u) b 
-  = Ghost name t (Destination  (getPlayerDestination b), meander (getRandomOrder x) b (head (getValidNeighbors b (x, y) (getRandomOrder y))) [point] []) curr next d u
-moveClyde (Ghost name loc (dest, t:ts) curr next d u) _ = Ghost name t (dest, ts) curr next d u
+moveClyde (Ghost name loc (Destination point, []) curr next d u inf) b 
+  = Ghost name loc (Destination point, [loc]) curr next d u inf
+moveClyde (Ghost name (x, y) (Destination point, [t]) curr next d u inf) b 
+  = Ghost name t (Destination  (getPlayerDestination b), meander (head inf) b (giveRandomNeighbor (getValidNeighbors b (x, y) (head inf)) (head inf)) [point] []) curr next d u (tail inf)
+moveClyde (Ghost name loc (dest, t:ts) curr next d u inf) _ = Ghost name t (dest, ts) curr next d u inf
 
+
+
+giveRandomNeighbor :: [Neighbor] -> Int -> Neighbor
+giveRandomNeighbor [] _ = Null
+giveRandomNeighbor ns seed = head shuffled
+  where
+    shuffled = fst (uniformShuffleList ns (mkStdGen seed))
 
 getPlayerLocation :: Board -> Point
 getPlayerLocation (Board ts ps cs l s dB uB (Player loc _ _ _ _ _ _) gs gOver timers) = loc
@@ -634,11 +643,11 @@ getPlayerDestination (Board ts ps cs l s dB uB (Player _ (Destination pt, _) _ _
 
 
 meander :: Int -> Board -> Neighbor -> [Point] -> [Track] -> [Track]
-meander order b  (Neighbor (Destination pt) trackToNeighbor) visited path 
+meander seed b  (Neighbor (Destination pt) trackToNeighbor) visited path 
   | null unvisited = path
-  | otherwise =  meander order b (head unvisited) (pt:visited) (path ++ trackToNeighbor)
+  | otherwise =  meander seed b (giveRandomNeighbor unvisited seed) (pt:visited) (path ++ trackToNeighbor)
   where 
-    next = getValidNeighbors b pt order
+    next = getValidNeighbors b pt seed
     unvisited = getUnvisited next visited
 
 getUnvisited :: [Neighbor] -> [Point] -> [Neighbor]
@@ -685,6 +694,7 @@ getValidNeighbors b pt arg
   | otherwise = filter (/= Null) [down, right, up,  left]  
   where 
     (Pivot _ (up, down, left, right)) = getPiv (getPivot pt b)
+
 
 -- dfsRefill :: Board -> Point -> Point -> Pivot -> [Point] -> [Track] -> [Track]
 -- dfsRefill b dest curr (Pivot pt (up, down, left, right)) visited path
