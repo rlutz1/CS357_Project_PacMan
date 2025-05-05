@@ -727,3 +727,11 @@
 
 
 
+-- m = 2^31
+-- m = 4
+-- a = 1103515245
+-- c = 12345
+-- rand :: Int -> Int
+-- rand seed = ((a * seed) + c) `mod` m
+-- getRandomOrder :: Float -> Int
+-- getRandomOrder _ = 2
