@@ -761,6 +761,7 @@ want to clean this up, works well enough to continue testing, but there's def so
 movePlayer :: Player -> Board -> Player
 movePlayer (Player loc (dest, []) curr next d u coll) _ = Player loc (dest, [loc]) curr next d u coll
 movePlayer (Player _ (dest, t:ts) curr next d u coll) b
+  -- | opposing curr next = changeDir (Player t (dest, ts) curr next d u coll) b
   | curr /= next && closeEnough ts = changeDir (Player t (dest, ts) curr next d u coll) b
   | otherwise = sameDir (Player t (dest, ts) curr curr d u coll) b
     
@@ -784,14 +785,18 @@ getTracks (Just (Pivot _ (upN, downN, leftN, rightN))) dir
 
 changeDir :: Player -> Board -> Player
 changeDir (Player loc ( point, ts) curr next d u coll) b 
-  -- | opposing curr next 
   | nextNeighbor == Null = sameDir (Player loc (point, ts) curr curr d u coll) b 
+  -- | opposing curr next Player loc (deconDest nextNeighbor, (genMovement nextNeighbor)) next next d u coll
   | otherwise = Player loc (deconDest nextNeighbor, ts ++ (genMovement nextNeighbor)) next next d u coll
   where 
     nextPiv = getPivot point b
     nextNeighbor = getTracks nextPiv next 
 
 
+opposing :: Direction -> Direction -> Bool
+opposing LEFT RIGHT = True
+opposing UP DOWN = True
+opposing _ _ = False
 
 genMovement :: Neighbor -> [Track]
 genMovement Null = error "dont' give this null!!"
