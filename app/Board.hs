@@ -587,7 +587,7 @@ moveBlinky :: Ghost -> Board -> Ghost
 moveBlinky (Ghost name loc (Destination point, []) curr next d u inf) b 
   = Ghost name loc (Destination point, [loc]) curr next d u inf
 moveBlinky (Ghost name loc (Destination point, [t]) curr next d u inf) b 
-  = Ghost name t (Destination  (getPlayerDestination b), nuke 1 b (getPlayerDestination b) (addPaths (getValidNeighbors b loc 1) []) [point]) curr next d u inf
+  = Ghost name t (Destination  (getPlayerDestination b), nukeButSlow 1 b (getPlayerDestination b) (addPaths (getValidNeighbors b t 1) []) [point]) curr next d u inf
 moveBlinky (Ghost name loc (dest, t:ts) curr next d u inf) _ = Ghost name t (dest, ts) curr next d u inf
 
 -- the nuke but only within line of sight, otherwise meanderer
@@ -660,10 +660,10 @@ getUnvisited ((Neighbor (Destination pt) track):ns) vis
   | otherwise = (Neighbor (Destination pt) track) : getUnvisited ns vis
 
 -- (genTracks defaultSpeed UP (x, y) (x, y + 50)
-
+--0.625
 nukeButSlow :: Int -> Board -> Point -> [(Neighbor, [Track])] ->  [Point] -> [Track]
 nukeButSlow order b dest ((Neighbor (Destination pt) tracksToNeighbor, path):queue) visited 
-  | pt == dest = path ++ (genTracks (2.0 / 3.0) (getDir pt (head tracksToNeighbor)) (head tracksToNeighbor) pt)
+  | pt == dest = path ++ (genTracks (0.8) (getDir pt (head tracksToNeighbor)) (head tracksToNeighbor) pt)
   | otherwise = 
     if pt `elem` visited 
       then nukeButSlow order b dest (queue) (visited) 
@@ -672,7 +672,7 @@ nukeButSlow order b dest ((Neighbor (Destination pt) tracksToNeighbor, path):que
   -- | otherwise = tracksToNeighbor ++ recur
   where
     next = getValidNeighbors b pt order
-    nextsWithPaths = addPaths next (path ++ (genTracks (2.0 / 3.0) (getDir pt (head tracksToNeighbor)) (head tracksToNeighbor) pt))
+    nextsWithPaths = addPaths next (path ++ (genTracks (0.8) (getDir pt (head tracksToNeighbor)) (head tracksToNeighbor) pt))
     getDir (x1, y1) (x2, y2) 
       | sameCol (x1, y1) (x2, y2) && y1 > y2 = UP
       | sameCol (x1, y1) (x2, y2) && y1 < y2 = DOWN
