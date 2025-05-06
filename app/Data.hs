@@ -26,7 +26,7 @@ data Tile = Tile Color Boundary -- purely for drawing the tile map, aesthetics a
 data Pivot = Pivot Point (Neighbor, Neighbor, Neighbor, Neighbor)
   deriving (Eq, Show)  
 
-data Neighbor = Null | Neighbor Destination [Track]
+data Neighbor = Null | Neighbor Direction Destination From
   deriving (Eq, Show) 
 
 
@@ -46,6 +46,8 @@ type Left = Float
 type Right = Float
 type Track = Point
 type Destination = Point
+type From = Point
+type To = Point
 
 data Direction = UP | DOWN | LEFT | RIGHT | NONE
     deriving (Enum, Eq, Show)

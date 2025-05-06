@@ -225,7 +225,7 @@ handlers for the underlying movement mechanic, known as tracks.
 
 -- up down left right
 -- data Pivot = Pivot Point (Neighbor, Neighbor, Neighbor, Neighbor)
--- data Neighbor = Null | Neighbor Destination [Track]
+-- data Neighbor = Null | Neighbor Direction Destination From
 
 genPivots :: [Point] -> [Pivot]
 genPivots walls = [ Pivot p (getNeighbor UP p walls, getNeighbor DOWN p walls, getNeighbor LEFT p walls, getNeighbor RIGHT p walls) | p <- genCenters, notElem p walls]
@@ -238,12 +238,16 @@ genCollectibles walls specials = specials ++ [ Collectible NoEffect 10 orange p 
 genCenters :: [Point]
 genCenters = [ (x, y) | x <- [-475, -425..475], y <- [-475, -425..225] ]
 
+  -- | dir == UP = if outOfBounds (x, y + 50) || elem (x, y + 50) walls then Null else Neighbor dir (x, y + 50) (genTracks defaultSpeed UP (x, y) (x, y + 50))
+  -- | dir == DOWN = if outOfBounds (x, y - 50) || elem (x, y - 50) walls then Null else Neighbor dir ( (x, y - 50)) (genTracks defaultSpeed DOWN (x, y) (x, y - 50))
+  -- | dir == LEFT = if outOfBounds (x - 50, y) || elem (x - 50, y) walls then Null else Neighbor dir ( (x - 50, y)) (genTracks defaultSpeed LEFT (x, y) (x - 50, y))
+  -- | dir == RIGHT = if outOfBounds (x + 50, y) || elem (x + 50, y) walls then Null else Neighbor dir ( (x + 50, y)) (genTracks defaultSpeed RIGHT (x, y) (x + 50, y))
 getNeighbor :: Direction -> Point -> [Point] -> Neighbor
 getNeighbor dir (x, y) walls 
-  | dir == UP = if outOfBounds (x, y + 50) || elem (x, y + 50) walls then Null else Neighbor (x, y + 50) (genTracks defaultSpeed UP (x, y) (x, y + 50))
-  | dir == DOWN = if outOfBounds (x, y - 50) || elem (x, y - 50) walls then Null else Neighbor ( (x, y - 50)) (genTracks defaultSpeed DOWN (x, y) (x, y - 50))
-  | dir == LEFT = if outOfBounds (x - 50, y) || elem (x - 50, y) walls then Null else Neighbor ( (x - 50, y)) (genTracks defaultSpeed LEFT (x, y) (x - 50, y))
-  | dir == RIGHT = if outOfBounds (x + 50, y) || elem (x + 50, y) walls then Null else Neighbor ( (x + 50, y)) (genTracks defaultSpeed RIGHT (x, y) (x + 50, y))
+  | dir == UP = if outOfBounds (x, y + 50) || elem (x, y + 50) walls then Null else Neighbor dir (x, y + 50) (x, y)
+  | dir == DOWN = if outOfBounds (x, y - 50) || elem (x, y - 50) walls then Null else Neighbor dir (x, y - 50) (x, y)
+  | dir == LEFT = if outOfBounds (x - 50, y) || elem (x - 50, y) walls then Null else Neighbor dir (x - 50, y) (x, y)
+  | dir == RIGHT = if outOfBounds (x + 50, y) || elem (x + 50, y) walls then Null else Neighbor dir (x + 50, y) (x, y)
   | otherwise = Null
 
 defaultSpeed :: Float
@@ -428,14 +432,7 @@ genLevel lvlNum
   | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls) lvl1SpecialCollectibles) playerInitLives playerInitScore drawBoard updateBoard genPlayer genGhosts False []
   | otherwise = Board [] [] [] 0 0 drawBoard updateBoard genPlayer genGhosts False []
 
-getTracks :: Maybe Pivot -> Direction -> Neighbor
-getTracks Nothing _ = Null
-getTracks (Just (Pivot _ (upN, downN, leftN, rightN))) dir
-  | dir == UP = upN
-  | dir == DOWN = downN
-  | dir == LEFT = leftN
-  | dir == RIGHT = rightN
-  | otherwise = Null
+
 
 
 {-
@@ -446,11 +443,11 @@ essentially getters for easy reading
 ------------------------------------------------------------
 -}
 
-deconDestination :: Neighbor -> Destination
-deconDestination (Neighbor dest _) = dest
+-- deconDestination :: Neighbor -> Destination
+-- deconDestination (Neighbor _ dest _) = dest
 
-deconTracks :: Neighbor -> [Track]
-deconTracks (Neighbor _ tracks) = tracks
+-- deconTracks :: Neighbor -> [Track]
+-- deconTracks (Neighbor _ tracks) = tracks
 
 {-
 ------------------------------------------------------------
@@ -587,7 +584,7 @@ moveBlinky :: Ghost -> Board -> Ghost
 moveBlinky (Ghost name loc ( point, []) curr next d u inf) b 
   = Ghost name loc ( point, [loc]) curr next d u inf
 moveBlinky (Ghost name loc ( point, [t]) curr next d u inf) b 
-  = Ghost name t (  (getPlayerDestination b), nukeButSlow 1 b (getPlayerDestination b) (addPaths (getValidNeighbors b t 1) []) [point]) curr next d u inf
+  = Ghost name t (getPlayerDestination b, nukeButSlow 1 b (getPlayerDestination b) (addPaths (getValidNeighbors b t 1) []) [point]) curr next d u inf
 moveBlinky (Ghost name loc (dest, t:ts) curr next d u inf) _ = Ghost name t (dest, ts) curr next d u inf
 
 -- the nuke but only within line of sight, otherwise meanderer
@@ -597,7 +594,7 @@ movePinky (Ghost name loc ( point, []) curr next d u inf) b
 
 movePinky (Ghost name (x, y) ( point, [t]) curr next d u inf) b
   | sameCol (getPlayerLocation b) (x, y) || sameRow (getPlayerLocation b) (x, y) = Ghost name t ( (getPlayerDestination b), nuke (getRandomOrder x) b (getPlayerDestination b) (addPaths (getValidNeighbors b (x, y) (getRandomOrder x)) []) [point]) curr next d u inf-- NUKE
-  | otherwise = Ghost name t (  (getPlayerDestination b), meander (head inf) b (giveRandomNeighbor (getValidNeighbors b (x, y) (head inf)) (head inf)) [point] []) curr next d u (tail inf)
+  | otherwise = Ghost name t (getPlayerDestination b, meander (head inf) b (giveRandomNeighbor (getValidNeighbors b (x, y) (head inf)) (head inf)) [point] []) curr next d u (tail inf)
   -- = Ghost name t (Destination  (getPlayerDestination b), meander (getRandomOrder x) b (head (getValidNeighbors b (x, y) (getRandomOrder x))) [point] []) curr next d u 
 
 movePinky (Ghost name loc ( point, t:ts) curr next d u inf) b = Ghost name t ( point, ts) curr next d u inf
@@ -644,54 +641,53 @@ getPlayerLocation (Board ts ps cs l s dB uB (Player loc _ _ _ _ _ _) gs gOver ti
 getPlayerDestination :: Board -> Point
 getPlayerDestination (Board ts ps cs l s dB uB (Player _ ( pt, _) _ _ _ _ _) gs gOver timers) = pt
 
-
+-- data Neighbor = Null | Neighbor Direction Destination From
 meander :: Int -> Board -> Neighbor -> [Point] -> [Track] -> [Track]
-meander seed b  (Neighbor ( pt) trackToNeighbor) visited path 
+meander seed b  (Neighbor dir dest from) visited path 
   | null unvisited = path
-  | otherwise =  meander seed b (giveRandomNeighbor unvisited seed) (pt:visited) (path ++ trackToNeighbor)
+  | otherwise =  meander seed b (giveRandomNeighbor unvisited seed) (dest:visited) (path ++ tracksToNeighbor)
   where 
-    next = getValidNeighbors b pt seed
+    next = getValidNeighbors b dest seed
     unvisited = getUnvisited next visited
+    tracksToNeighbor = genTracks (1.0) dir from dest
 
 getUnvisited :: [Neighbor] -> [Point] -> [Neighbor]
 getUnvisited [] _ = []
-getUnvisited ((Neighbor ( pt) track):ns) vis 
-  | pt `elem` vis = getUnvisited ns vis
-  | otherwise = (Neighbor ( pt) track) : getUnvisited ns vis
+getUnvisited ((Neighbor dir dest from):ns) vis 
+  | dest `elem` vis = getUnvisited ns vis
+  | otherwise = (Neighbor dir dest from) : getUnvisited ns vis
 
 -- (genTracks defaultSpeed UP (x, y) (x, y + 50)
 --0.625
 nukeButSlow :: Int -> Board -> Point -> [(Neighbor, [Track])] ->  [Point] -> [Track]
-nukeButSlow order b dest ((Neighbor ( pt) tracksToNeighbor, path):queue) visited 
-  | pt == dest = path ++ (genTracks (0.8) (getDir pt (head tracksToNeighbor)) (head tracksToNeighbor) pt)
+nukeButSlow order b ultimateDest ((Neighbor dir dest from, path):queue) visited 
+  | dest == ultimateDest = path ++ tracksToNeighbor
   | otherwise = 
-    if pt `elem` visited 
-      then nukeButSlow order b dest (queue) (visited) 
-      else  nukeButSlow order b dest (queue ++ nextsWithPaths) (pt:visited)
+    if dest `elem` visited 
+      then nukeButSlow order b ultimateDest (queue) (visited) 
+      else  nukeButSlow order b ultimateDest (queue ++ nextsWithPaths) (dest:visited)
       -- if not (null recur) then prev ++ recur else recur
   -- | otherwise = tracksToNeighbor ++ recur
   where
-    next = getValidNeighbors b pt order
-    nextsWithPaths = addPaths next (path ++ (genTracks (0.8) (getDir pt (head tracksToNeighbor)) (head tracksToNeighbor) pt))
-    getDir (x1, y1) (x2, y2) 
-      | sameCol (x1, y1) (x2, y2) && y1 > y2 = UP
-      | sameCol (x1, y1) (x2, y2) && y1 < y2 = DOWN
-      | sameRow (x1, y1) (x2, y2) && x1 > x2 = RIGHT
-      | otherwise = LEFT
+    next = getValidNeighbors b dest order
+    tracksToNeighbor = genTracks (0.8) dir from dest
+    nextsWithPaths = addPaths next (path ++ tracksToNeighbor)
+    
 
     -- recur = nuke order b dest (queue ++ next) (pt:visited) tracksToNeighbor
 
 nuke :: Int -> Board -> Point -> [(Neighbor, [Track])] ->  [Point] -> [Track]
-nuke order b dest ((Neighbor ( pt) tracksToNeighbor, path):queue) visited 
-  | pt == dest = path ++ tracksToNeighbor
+nuke order b ultimateDest ((Neighbor dir dest from, path):queue) visited 
+  | dest == ultimateDest = path ++ tracksToNeighbor
   | otherwise = 
-    if pt `elem` visited 
-      then nuke order b dest (queue) (visited) 
-      else  nuke order b dest (queue ++ nextsWithPaths) (pt:visited)
+    if dest `elem` visited 
+      then nuke order b ultimateDest (queue) (visited) 
+      else  nuke order b ultimateDest (queue ++ nextsWithPaths) (dest:visited)
       -- if not (null recur) then prev ++ recur else recur
   -- | otherwise = tracksToNeighbor ++ recur
   where
-    next = getValidNeighbors b pt order
+    next = getValidNeighbors b dest order
+    tracksToNeighbor = genTracks (1.0) dir from dest
     nextsWithPaths = addPaths next (path ++ tracksToNeighbor)
     -- recur = nuke order b dest (queue ++ next) (pt:visited) tracksToNeighbor
 
@@ -711,10 +707,7 @@ notAdjacent (x1, y1) (x2, y2)
 --     next = getValidNeighbors b pt
 
 getValidNeighbors :: Board -> Point -> Int -> [Neighbor]
-getValidNeighbors b pt arg
-  | arg == 1  = filter (/= Null) [up,  right, left, down]  
-  | arg == 2 = filter (/= Null) [left, down, right, up]  
-  | otherwise = filter (/= Null) [down, right, up,  left]  
+getValidNeighbors b pt arg = filter (/= Null) [up,  right, left, down]
   where 
     (Pivot _ (up, down, left, right)) = getPiv (getPivot pt b)
 
@@ -727,12 +720,12 @@ getValidNeighbors b pt arg
 
     
 getNeighborPoint :: Neighbor -> Point
-getNeighborPoint (Neighbor ( pt) _) = pt
+getNeighborPoint (Neighbor _ dest _) = dest
 getNeighborPoint _ = error "don't give this null, dummy"
 
-getNeighborTrack :: Neighbor -> [Track]
-getNeighborTrack (Neighbor _ track) = track
-getNeighborTrack _ = error "don't give this null, dummy"
+-- getNeighborTrack :: Neighbor -> [Track]
+-- getNeighborTrack (Neighbor _ track) = track
+-- getNeighborTrack _ = error "don't give this null, dummy"
 
 getPiv :: Maybe Pivot -> Pivot
 getPiv (Just pv) = pv
@@ -775,32 +768,50 @@ movePlayer (Player _ (dest, t:ts) curr next d u coll) b
 -- queueTracks (Player loc (dest, ts) curr next) b -- we are attempting oto queue up the next move
 --   | curr /= next = changeDir (Player loc (dest, ts) curr next) b 
 --   | otherwise = sameDir (Player loc (dest, ts) curr next) b 
-
+ 
+ --genTracks (1.0) dir from dest
 -- todo clean up
+
+getTracks :: Maybe Pivot -> Direction -> Neighbor
+getTracks Nothing _ = Null
+getTracks (Just (Pivot _ (upN, downN, leftN, rightN))) dir
+  | dir == UP = upN
+  | dir == DOWN = downN
+  | dir == LEFT = leftN
+  | dir == RIGHT = rightN
+  | otherwise = Null
+
+
 changeDir :: Player -> Board -> Player
 changeDir (Player loc ( point, ts) curr next d u coll) b 
-  | nextTracks == Null = sameDir (Player loc ( point, ts) curr curr d u coll) b 
-  | otherwise = Player loc (deconDestination nextTracks, ts ++ deconTracks nextTracks) next next d u coll
+  -- | opposing curr next 
+  | nextNeighbor == Null = sameDir (Player loc (point, ts) curr curr d u coll) b 
+  | otherwise = Player loc (deconDest nextNeighbor, ts ++ (genMovement nextNeighbor)) next next d u coll
   where 
     nextPiv = getPivot point b
-    nextTracks = getTracks nextPiv next
+    nextNeighbor = getTracks nextPiv next 
 
 
+
+genMovement :: Neighbor -> [Track]
+genMovement Null = error "dont' give this null!!"
+genMovement (Neighbor dir dest from) = genTracks (1.0) dir from dest
 
 -- todo clean up
 sameDir :: Player -> Board -> Player
 sameDir (Player loc ( point, []) curr _ d u coll) _ = Player loc ( point, []) curr curr d u coll
 sameDir (Player loc ( point, [t]) curr _ d u coll) b
-  | nextTracks == Null = Player loc ( point, [t]) curr curr d u coll
-  | otherwise = Player loc (deconDestination nextTracks, t :deconTracks nextTracks) curr curr d u coll
+  | nextNeighbor == Null = Player loc ( point, [t]) curr curr d u coll
+  | otherwise = Player loc (deconDest nextNeighbor, t : (genMovement nextNeighbor)) curr curr d u coll
   where 
     nextPiv = getPivot point b
-    nextTracks = getTracks nextPiv curr
+    nextNeighbor = getTracks nextPiv curr
 sameDir (Player loc ( point, ts) curr next d u coll) _ = Player loc ( point, ts) curr next d u coll 
 
 closeEnough :: [a] -> Bool
 closeEnough xs = length xs <= 25
 
-
-
+deconDest :: Neighbor -> Point
+deconDest Null = error "what is wrong with you"
+deconDest (Neighbor _ dest _) = dest 
 
