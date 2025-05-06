@@ -29,10 +29,7 @@ data Pivot = Pivot Point (Neighbor, Neighbor, Neighbor, Neighbor)
 data Neighbor = Null | Neighbor Destination [Track]
   deriving (Eq, Show) 
 
-data Destination = Destination Point
-  deriving (Eq, Show) 
--- data Track = Track Point 
---   deriving (Eq, Show) 
+
 
 data Boundary = 
   Boundary {
@@ -47,8 +44,8 @@ type Bottom = Float -- for ease of reading lol
 type Top = Float
 type Left = Float
 type Right = Float
-
 type Track = Point
+type Destination = Point
 
 data Direction = UP | DOWN | LEFT | RIGHT | NONE
     deriving (Enum, Eq, Show)
