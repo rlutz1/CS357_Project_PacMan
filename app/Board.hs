@@ -177,7 +177,7 @@ drawGameWonNotification :: [Picture]
 drawGameWonNotification = [
   color (makeColor 0.616 0.616 0.616 1) (rectangleSolid 750 400),
   scale 0.25 0.25 (translate (-350) (200) (Text "YOU WON!")),
-  scale 0.25 0.25 (translate (-1250) (0) (Text "You did escaped the spooky ghosts!")),
+  scale 0.25 0.25 (translate (-1250) (0) (Text "You did escape the spooky ghosts!")),
   scale 0.25 0.25 (translate (-800) (-200) (Text "Press G to back to menu"))
   ]
 
@@ -240,18 +240,21 @@ genCenters = [ (x, y) | x <- [-475, -425..475], y <- [-475, -425..225] ]
 
 getNeighbor :: Direction -> Point -> [Point] -> Neighbor
 getNeighbor dir (x, y) walls 
-  | dir == UP = if outOfBounds (x, y + 50) || elem (x, y + 50) walls then Null else Neighbor (Destination (x, y + 50)) (genTracks UP (x, y) (x, y + 50))
-  | dir == DOWN = if outOfBounds (x, y - 50) || elem (x, y - 50) walls then Null else Neighbor (Destination (x, y - 50)) (genTracks DOWN (x, y) (x, y - 50))
-  | dir == LEFT = if outOfBounds (x - 50, y) || elem (x - 50, y) walls then Null else Neighbor (Destination (x - 50, y)) (genTracks LEFT (x, y) (x - 50, y))
-  | dir == RIGHT = if outOfBounds (x + 50, y) || elem (x + 50, y) walls then Null else Neighbor (Destination (x + 50, y)) (genTracks RIGHT (x, y) (x + 50, y))
+  | dir == UP = if outOfBounds (x, y + 50) || elem (x, y + 50) walls then Null else Neighbor (Destination (x, y + 50)) (genTracks defaultSpeed UP (x, y) (x, y + 50))
+  | dir == DOWN = if outOfBounds (x, y - 50) || elem (x, y - 50) walls then Null else Neighbor (Destination (x, y - 50)) (genTracks defaultSpeed DOWN (x, y) (x, y - 50))
+  | dir == LEFT = if outOfBounds (x - 50, y) || elem (x - 50, y) walls then Null else Neighbor (Destination (x - 50, y)) (genTracks defaultSpeed LEFT (x, y) (x - 50, y))
+  | dir == RIGHT = if outOfBounds (x + 50, y) || elem (x + 50, y) walls then Null else Neighbor (Destination (x + 50, y)) (genTracks defaultSpeed RIGHT (x, y) (x + 50, y))
   | otherwise = Null
 
-genTracks :: Direction -> Point -> Point -> [Track]
-genTracks dir start end
-  | dir == UP = go (>=) start end [] 0 1
-  | dir == DOWN = go (<=) start end [] 0 (-1)
-  | dir == LEFT = go (<=) start end [] (-1) 0
-  | dir == RIGHT = go (>=) start end [] 1 0
+defaultSpeed :: Float
+defaultSpeed = 1 -- 1 px / frame
+
+genTracks :: Float -> Direction -> Point -> Point -> [Track]
+genTracks speed dir start end
+  | dir == UP = go (>=) start end [] 0 speed
+  | dir == DOWN = go (<=) start end [] 0 (-speed)
+  | dir == LEFT = go (<=) start end [] (-speed) 0
+  | dir == RIGHT = go (>=) start end [] speed 0
   | otherwise = []
   where 
     go pred (x1, y1) (x2, y2) acc xAcc yAcc
