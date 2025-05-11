@@ -45,6 +45,12 @@ getPlayerDestination (Board ts ps cs l s dB uB (Player _ ( pt, _) _ _ _ _ _) gs 
 defaultSpeed :: Float
 defaultSpeed = 1 
 
+fastSpeed :: Float
+fastSpeed = 1.2
+
+slowSpeed :: Float
+slowSpeed = 0.8
+
 genTracks :: Float -> Direction -> Point -> Point -> [Track]
 genTracks speed dir start end
   | dir == UP = go (>=) start end [] 0 speed

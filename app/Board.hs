@@ -41,7 +41,7 @@ checkCollision b p [] = b
 checkCollision 
   (Board ts ps cs lives s dB uB op ogs gOver timers)
   (Player locP desP currP nextP dP uP coll) 
-  ((Ghost name locG desG currG nextG dG uG inf):gs)
+  ((Ghost name locG desG dG uG inf):gs)
     | coll = 
       if collisionDetected locP locG 
         then kill (Board ts ps cs lives s dB uB op ogs gOver timers) 

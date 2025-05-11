@@ -403,6 +403,24 @@ getRandomOrder x = (abs (round x) * 7) `mod` 2
 
 
 
+-- -- (genTracks defaultSpeed UP (x, y) (x, y + 50)
+-- --0.625
+-- nukeButSlow :: Board -> Point -> [(Neighbor, [Track])] ->  [Point] -> [Track]
+-- nukeButSlow b ultimateDest ((Neighbor dir dest from, path):queue) visited 
+--   | dest == ultimateDest = path ++ tracksToNeighbor
+--   | otherwise = 
+--     if dest `elem` visited 
+--       then nukeButSlow b ultimateDest (queue) (visited) 
+--       else  nukeButSlow b ultimateDest (queue ++ nextsWithPaths) (dest:visited)
+--       -- if not (null recur) then prev ++ recur else recur
+--   -- | otherwise = tracksToNeighbor ++ recur
+--   where
+--     next = getValidNeighbors b dest
+--     tracksToNeighbor = genTracks (0.8) dir from dest
+--     nextsWithPaths = addPaths next (path ++ tracksToNeighbor)
+    
+
+--     -- recur = nuke order b dest (queue ++ next) (pt:visited) tracksToNeighbor
 
 {-
 to do here:

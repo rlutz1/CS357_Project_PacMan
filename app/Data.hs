@@ -79,8 +79,6 @@ data Ghost =
     name :: String,
     locationG :: Point,
     pathG :: (To, [Track]),
-    currDirectionG :: Direction, 
-    nextDirectionG :: Direction,
     drawG :: Ghost -> Picture,
     updateG :: Ghost -> Board -> Ghost,
     inf :: [Int]
