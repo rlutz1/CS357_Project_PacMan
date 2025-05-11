@@ -3,6 +3,7 @@ pacman game in haskell!
 
 + ~~overhaul the tracking system~~
 + remove destination from ghosts
++ remove direction from ghosts
 + remove arg from valid neighbors thing, all is shuffled now
 + get neighbor -> gen neighbor
 + get tracks -> get neighbor

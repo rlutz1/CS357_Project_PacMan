@@ -375,3 +375,15 @@ dfsRefill order b dest ((Neighbor (Destination pt) trackToNeighbor):stack) visit
       else  dfsRefill order b dest (next ++ stack) (pt:visited) (path ++ trackToNeighbor)
   where 
     next = getValidNeighbors b pt order
+
+
+    
+notAdjacent :: Point -> Point -> Bool
+notAdjacent (x1, y1) (x2, y2)
+  | sameCol (x1, y1) (x2, y2) = max y1 y2 - min y1 y2 > 50
+  | sameRow (x1, y1) (x2, y2) = max x1 x2 - min x1 x2 > 50
+  | otherwise = True
+
+
+  withinLineOfSight :: Point -> Point -> Bool
+withinLineOfSight p g = sameCol p g || sameRow p g

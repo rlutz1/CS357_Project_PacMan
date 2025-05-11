@@ -584,27 +584,17 @@ moveBlinky :: Ghost -> Board -> Ghost
 moveBlinky (Ghost name loc ( point, []) curr next d u inf) b 
   = Ghost name loc ( point, [loc]) curr next d u inf
 moveBlinky (Ghost name loc ( point, [t]) curr next d u inf) b 
-  = Ghost name t (getPlayerDestination b, nukeButSlow 1 b (getPlayerDestination b) (addPaths (getValidNeighbors b t 1) []) [point]) curr next d u inf
+  = Ghost name t (getPlayerDestination b, nukeButSlow b (getPlayerDestination b) (addPaths (getValidNeighbors b t) []) [point]) curr next d u inf
 moveBlinky (Ghost name loc (dest, t:ts) curr next d u inf) _ = Ghost name t (dest, ts) curr next d u inf
 
--- the nuke but only within line of sight, otherwise meanderer
+-- the nuke but only when player happens to be in same row/col when refilling, otherwise meanderer
 movePinky :: Ghost -> Board -> Ghost
-movePinky (Ghost name loc ( point, []) curr next d u inf) b 
+movePinky (Ghost name loc (point, []) curr next d u inf) b 
   = Ghost name loc ( point, [loc]) curr next d u inf
-
-movePinky (Ghost name (x, y) ( point, [t]) curr next d u inf) b
-  | sameCol (getPlayerLocation b) (x, y) || sameRow (getPlayerLocation b) (x, y) = Ghost name t ( (getPlayerDestination b), nuke (getRandomOrder x) b (getPlayerDestination b) (addPaths (getValidNeighbors b (x, y) (getRandomOrder x)) []) [point]) curr next d u inf-- NUKE
-  | otherwise = Ghost name t (getPlayerDestination b, meander (head inf) b (giveRandomNeighbor (getValidNeighbors b (x, y) (head inf)) (head inf)) [point] []) curr next d u (tail inf)
-  -- = Ghost name t (Destination  (getPlayerDestination b), meander (getRandomOrder x) b (head (getValidNeighbors b (x, y) (getRandomOrder x))) [point] []) curr next d u 
-
-movePinky (Ghost name loc ( point, t:ts) curr next d u inf) b = Ghost name t ( point, ts) curr next d u inf
-  -- | withinLineOfSight (getPlayerLocation b) loc = Ghost name loc (Destination (getPlayerDestination b), nuke 1 b (getPlayerDestination b) (addPaths (getValidNeighbors b loc 1) []) [point]) curr next d u -- NUKE
-  -- | otherwise = Ghost name t (Destination point, ts) curr next d u -- just continue on
-
-withinLineOfSight :: Point -> Point -> Bool
-withinLineOfSight p g = sameCol p g || sameRow p g
-
-
+movePinky (Ghost name (x, y) (point, [t]) curr next d u (i:inf)) b
+  | sameCol (getPlayerLocation b) (x, y) || sameRow (getPlayerLocation b) (x, y) = Ghost name t ((getPlayerDestination b), nuke b (getPlayerDestination b) (addPaths (getValidNeighbors b t) []) [point]) curr next d u inf-- NUKE
+  | otherwise = Ghost name t (getPlayerDestination b, meander i b (giveRandomNeighbor (getValidNeighbors b t) i) [point] []) curr next d u inf
+movePinky (Ghost name loc (point, t:ts) curr next d u inf) b = Ghost name t (point, ts) curr next d u inf
 
 getRandomOrder :: Float -> Int -- REMOVE
 getRandomOrder x = (abs (round x) * 7) `mod` 2
@@ -613,18 +603,18 @@ getRandomOrder x = (abs (round x) * 7) `mod` 2
 
 -- a meanderer
 moveInky :: Ghost -> Board -> Ghost
-moveInky (Ghost name loc ( point, []) curr next d u inf) b 
-  = Ghost name loc ( point, [loc]) curr next d u inf
-moveInky (Ghost name (x, y) ( point, [t]) curr next d u inf) b 
-  = Ghost name t (  (getPlayerDestination b), meander (head inf) b (giveRandomNeighbor (getValidNeighbors b (x, y) (head inf)) (head inf)) [point] []) curr next d u (tail inf)
+moveInky (Ghost name loc (point, []) curr next d u inf) b 
+  = Ghost name loc (point, [loc]) curr next d u inf
+moveInky (Ghost name (x, y) (point, [t]) curr next d u (i:inf)) b 
+  = Ghost name t (getPlayerDestination b, meander i b (giveRandomNeighbor (getValidNeighbors b t) i) [point] []) curr next d u inf
 moveInky (Ghost name loc (dest, t:ts) curr next d u inf) _ = Ghost name t (dest, ts) curr next d u inf
 
 -- a meanderer
 moveClyde :: Ghost -> Board -> Ghost
-moveClyde (Ghost name loc ( point, []) curr next d u inf) b 
-  = Ghost name loc ( point, [loc]) curr next d u inf
-moveClyde (Ghost name (x, y) ( point, [t]) curr next d u inf) b 
-  = Ghost name t (  (getPlayerDestination b), meander (head inf) b (giveRandomNeighbor (getValidNeighbors b (x, y) (head inf)) (head inf)) [point] []) curr next d u (tail inf)
+moveClyde (Ghost name loc (point, []) curr next d u inf) b 
+  = Ghost name loc (point, [loc]) curr next d u inf
+moveClyde (Ghost name (x, y) ( point, [t]) curr next d u (i:inf)) b 
+  = Ghost name t (getPlayerDestination b, meander i b (giveRandomNeighbor (getValidNeighbors b t) i) [point] []) curr next d u inf
 moveClyde (Ghost name loc (dest, t:ts) curr next d u inf) _ = Ghost name t (dest, ts) curr next d u inf
 
 
@@ -647,7 +637,7 @@ meander seed b  (Neighbor dir dest from) visited path
   | null unvisited = path
   | otherwise =  meander seed b (giveRandomNeighbor unvisited seed) (dest:visited) (path ++ tracksToNeighbor)
   where 
-    next = getValidNeighbors b dest seed
+    next = getValidNeighbors b dest
     unvisited = getUnvisited next visited
     tracksToNeighbor = genTracks (1.0) dir from dest
 
@@ -659,55 +649,48 @@ getUnvisited ((Neighbor dir dest from):ns) vis
 
 -- (genTracks defaultSpeed UP (x, y) (x, y + 50)
 --0.625
-nukeButSlow :: Int -> Board -> Point -> [(Neighbor, [Track])] ->  [Point] -> [Track]
-nukeButSlow order b ultimateDest ((Neighbor dir dest from, path):queue) visited 
+nukeButSlow :: Board -> Point -> [(Neighbor, [Track])] ->  [Point] -> [Track]
+nukeButSlow b ultimateDest ((Neighbor dir dest from, path):queue) visited 
   | dest == ultimateDest = path ++ tracksToNeighbor
   | otherwise = 
     if dest `elem` visited 
-      then nukeButSlow order b ultimateDest (queue) (visited) 
-      else  nukeButSlow order b ultimateDest (queue ++ nextsWithPaths) (dest:visited)
+      then nukeButSlow b ultimateDest (queue) (visited) 
+      else  nukeButSlow b ultimateDest (queue ++ nextsWithPaths) (dest:visited)
       -- if not (null recur) then prev ++ recur else recur
   -- | otherwise = tracksToNeighbor ++ recur
   where
-    next = getValidNeighbors b dest order
+    next = getValidNeighbors b dest
     tracksToNeighbor = genTracks (0.8) dir from dest
     nextsWithPaths = addPaths next (path ++ tracksToNeighbor)
     
 
     -- recur = nuke order b dest (queue ++ next) (pt:visited) tracksToNeighbor
 
-nuke :: Int -> Board -> Point -> [(Neighbor, [Track])] ->  [Point] -> [Track]
-nuke order b ultimateDest ((Neighbor dir dest from, path):queue) visited 
+nuke :: Board -> Point -> [(Neighbor, [Track])] ->  [Point] -> [Track]
+nuke  b ultimateDest ((Neighbor dir dest from, path):queue) visited 
   | dest == ultimateDest = path ++ tracksToNeighbor
   | otherwise = 
     if dest `elem` visited 
-      then nuke order b ultimateDest (queue) (visited) 
-      else  nuke order b ultimateDest (queue ++ nextsWithPaths) (dest:visited)
-      -- if not (null recur) then prev ++ recur else recur
-  -- | otherwise = tracksToNeighbor ++ recur
+      then nuke  b ultimateDest (queue) (visited) 
+      else  nuke  b ultimateDest (queue ++ nextsWithPaths) (dest:visited)
+
   where
-    next = getValidNeighbors b dest order
+    next = getValidNeighbors b dest 
     tracksToNeighbor = genTracks (1.0) dir from dest
     nextsWithPaths = addPaths next (path ++ tracksToNeighbor)
-    -- recur = nuke order b dest (queue ++ next) (pt:visited) tracksToNeighbor
 
 addPaths :: [Neighbor] -> [Track] -> [(Neighbor, [Track])]
 addPaths [] path = []
 addPaths (n:ns) path = (n, path) : addPaths ns path
 
-notAdjacent :: Point -> Point -> Bool
-notAdjacent (x1, y1) (x2, y2)
-  | sameCol (x1, y1) (x2, y2) = max y1 y2 - min y1 y2 > 50
-  | sameRow (x1, y1) (x2, y2) = max x1 x2 - min x1 x2 > 50
-  | otherwise = True
 
 -- allVisited :: Board -> Point -> [Point] -> Bool
 -- allVisited b pt visited = null (filter (\(Neighbor)) next)  
 --   where
 --     next = getValidNeighbors b pt
 
-getValidNeighbors :: Board -> Point -> Int -> [Neighbor]
-getValidNeighbors b pt arg = filter (/= Null) [up,  right, left, down]
+getValidNeighbors :: Board -> Point -> [Neighbor]
+getValidNeighbors b pt = filter (/= Null) [up,  right, left, down]
   where 
     (Pivot _ (up, down, left, right)) = getPiv (getPivot pt b)
 
