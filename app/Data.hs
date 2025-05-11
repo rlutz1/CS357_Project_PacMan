@@ -76,12 +76,12 @@ data Player =
 -- the ghost with all its needed data
 data Ghost = 
   Ghost {
-    name :: String,
-    locationG :: Point,
-    pathG :: (To, [Track]),
-    drawG :: Ghost -> Picture,
-    updateG :: Ghost -> Board -> Ghost,
-    inf :: [Int]
+    name :: String, -- name of ghosty
+    locationG :: Point, -- current location
+    pathG :: (To, [Track]), -- current path
+    drawG :: Ghost -> Picture, -- draw function
+    updateG :: Ghost -> Board -> Ghost, --update function
+    inf :: [Int] -- infinite list for path selection shuffling
  }
 
 -- type synonyms for ease of reading 

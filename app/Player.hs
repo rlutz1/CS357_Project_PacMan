@@ -40,7 +40,7 @@ movePlayer (Player _ (dest, t:ts) curr next d u coll) b
 changeDir :: Player -> Board -> Player
 changeDir (Player loc (point, ts) curr next d u coll) b 
   | nextNeighbor == Null = sameDir (Player loc (point, ts) curr curr d u coll) b 
-  | otherwise = Player loc (deconDest nextNeighbor, ts ++ (genMovement nextNeighbor)) next next d u coll
+  | otherwise = Player loc (getNeighborPoint nextNeighbor, ts ++ (genMovement nextNeighbor)) next next d u coll
   where 
     nextPiv = getPivot point b
     nextNeighbor = getSpecificNeighbor nextPiv next 
@@ -55,7 +55,7 @@ sameDir :: Player -> Board -> Player
 sameDir (Player loc (point, []) curr _ d u coll) _ = Player loc ( point, []) curr curr d u coll
 sameDir (Player loc (point, [t]) curr _ d u coll) b
   | nextNeighbor == Null = Player loc (point, [t]) curr curr d u coll
-  | otherwise = Player loc (deconDest nextNeighbor, t : (genMovement nextNeighbor)) curr curr d u coll
+  | otherwise = Player loc (getNeighborPoint nextNeighbor, t : (genMovement nextNeighbor)) curr curr d u coll
   where 
     nextPiv = getPivot point b
     nextNeighbor = getSpecificNeighbor nextPiv curr
