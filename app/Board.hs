@@ -8,6 +8,16 @@ import Ghost
 import Player
 import BoardSetup
 
+{-
+  @author Roxanne Lutz
+  the actual board specific functionality.
+  all updating, drawing, and generation functions are within this file.
+  
+  some magic number nonsense in here, which i'm not proud of. 
+  for the future, i would like to make the board dimension more
+  flexible with the window size, but for this project this worked for
+  the consistency to start.
+-}
 
 {-
 ------------------------------------------------------------
@@ -25,13 +35,17 @@ updateBoard (Board ts ps cs ls s dB uB p gs gOver timers) dt =
     let updatedEffects = updateEffects updatedColls dt []
     checkCollision (updatedEffects) updatedP updatedGs
 
+-- overarching collision detection function to see if pacman has collided with any of the ghosts.
 checkCollision :: Board -> Player -> [Ghost] -> Board
 checkCollision b p [] = b
 checkCollision 
   (Board ts ps cs lives s dB uB op ogs gOver timers)
   (Player locP desP currP nextP dP uP coll) 
   ((Ghost name locG desG currG nextG dG uG inf):gs)
-    | coll = if collisionDetected locP locG then kill (Board ts ps cs lives s dB uB op ogs gOver timers) else checkCollision (Board ts ps cs lives s dB uB op ogs gOver timers) (Player locP desP currP nextP dP uP coll) gs
+    | coll = 
+      if collisionDetected locP locG 
+        then kill (Board ts ps cs lives s dB uB op ogs gOver timers) 
+        else checkCollision (Board ts ps cs lives s dB uB op ogs gOver timers) (Player locP desP currP nextP dP uP coll) gs
     | otherwise = Board ts ps cs lives s dB uB op ogs gOver timers
 
 -- kill the pacman! he ran into a ghost!
@@ -106,8 +120,8 @@ effectTime NoEffect = 0
 -- collision detection: are you within the defined limit of a ghost; number considers center -> center distance of circle center
 collisionDetected :: Point -> Point -> Bool
 collisionDetected (x1, y1) (x2, y2)
-  | sameCol (x1, y1) (x2, y2) = max y1 y2 - min y1 y2 < 40
-  | sameRow (x1, y1) (x2, y2) = max x1 x2 - min x1 x2 < 40
+  | sameCol (x1, y1) (x2, y2) = max y1 y2 - min y1 y2 < collisionBumper
+  | sameRow (x1, y1) (x2, y2) = max x1 x2 - min x1 x2 < collisionBumper
   | otherwise = False
 
 -- little helper function for readability, simply testing if null collectible list
@@ -136,13 +150,16 @@ deconCollLoc (Collectible _ _ _ p) = p
 BOARD DRAWING FUNCTIONS
 ------------------------------------------------------------
 -}
+
+-- game was won, draw the board this way now, with a notification
 drawGameWon :: Board -> [Picture]
 drawGameWon b =  drawBoard b ++ drawGameWonNotification
 
+-- game was lost, draw the board this way now, with a notification
 drawGameLost :: Board -> [Picture]
 drawGameLost b =  drawBoard b ++ drawGameLostNotification
 
--- rgb(157, 157, 157)
+-- the notification to put on screen for the player when they win the level
 drawGameWonNotification :: [Picture]
 drawGameWonNotification = [
   color (makeColor 0.616 0.616 0.616 1) (rectangleSolid 750 400),
@@ -151,7 +168,7 @@ drawGameWonNotification = [
   scale 0.25 0.25 (translate (-800) (-200) (Text "Press G to back to menu"))
   ]
 
--- rgb(157, 157, 157)
+-- the notification to put on screen for the player when they lose the level
 drawGameLostNotification :: [Picture]
 drawGameLostNotification = [
   color (makeColor 0.616 0.616 0.616 1) (rectangleSolid 750 400),
@@ -162,60 +179,60 @@ drawGameLostNotification = [
 
 {-
 ------------------------------------------------------------
-TILES
-
-handlers for the graphic representation of the tile map.
+BOARD GENERATION FUNCTIONS
 ------------------------------------------------------------
 -}
 
+-- generate pivot points -> centers of the tiles of the board
+genPivots :: [Point] -> [Pivot]
+genPivots walls = 
+  [Pivot p (genNeighbors UP p walls, genNeighbors DOWN p walls, genNeighbors LEFT p walls, genNeighbors RIGHT p walls) 
+  | p <- genCenters, notElem p walls]
+
+-- generate collectibles for the board, general ones only.
+genCollectibles :: [Point] -> [Collectible] -> [Collectible]
+genCollectibles walls specials = specials ++ [ Collectible NoEffect defaultCollScore orange p | p <- genCenters, notElem p walls, notElem p specialPoints]
+  where
+    specialPoints = [ pt | (Collectible _ _ _ pt) <- specials ]
+
+-- generate all center points on the board. this math is done and specific to the window size. should be more flexible for future work.
+genCenters :: [Point]
+genCenters = [ (x, y) | x <- [-475, -425..475], y <- [-475, -425..225] ]
+
+-- generate all neighbors from a specified pivot point
+genNeighbors :: Direction -> Point -> [Point] -> Neighbor
+genNeighbors UP (x, y) walls = genNeighbor UP (x, y) (x, y + 50) walls
+genNeighbors DOWN (x, y) walls = genNeighbor DOWN (x, y) (x, y - 50) walls
+genNeighbors LEFT (x, y) walls = genNeighbor LEFT (x, y) (x - 50, y)walls
+genNeighbors RIGHT (x, y) walls = genNeighbor RIGHT (x, y) (x + 50, y) walls
+genNeighbors _ _ _ = Null
+
+-- a cleaner helper for the above
+genNeighbor :: Direction -> Point -> Point -> [Point] -> Neighbor
+genNeighbor dir piv pt walls
+  | outOfBounds pt || elem pt walls = Null 
+  | otherwise = Neighbor dir pt piv
+
+-- generate the player on the board
+genPlayer :: Player 
+genPlayer = Player playerStartPoint ( playerStartPoint, []) NONE NONE drawPlayer updatePlayer False
+
+-- generate the level depending on input from user
+genLevel :: Int -> Board
+genLevel 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls) lvl1SpecialCollectibles) playerInitLives playerInitScore drawBoard updateBoard genPlayer genGhosts False []
+genLevel _ = Board [] [] [] 0 0 drawBoard updateBoard genPlayer genGhosts False []
+
+-- generate the tiles for the board. tiles are mainly for graphical purposes only and can be both path or wall
 genTiles :: [Point] -> [Tile]
 genTiles walls = [ Tile (getTileColor walls (x + 25, y + 25)) (Boundary y (y + 50) x (x + 50)) | x <- [-500, -450..450], y <- [-500, -450..200] ]
 
+-- return a color based on whether wall or not.
 getTileColor :: [Point] -> Point -> Color
 getTileColor walls center
   | elem center walls = black
   | otherwise = blue
 
-
-{-
-------------------------------------------------------------
-TRACKS
-
-handlers for the underlying movement mechanic, known as tracks.
-------------------------------------------------------------
--}
-
--- up down left right
--- data Pivot = Pivot Point (Neighbor, Neighbor, Neighbor, Neighbor)
--- data Neighbor = Null | Neighbor Direction Destination From
-
-genPivots :: [Point] -> [Pivot]
-genPivots walls = [ Pivot p (genNeighbor UP p walls, genNeighbor DOWN p walls, genNeighbor LEFT p walls, genNeighbor RIGHT p walls) | p <- genCenters, notElem p walls]
-
-genCollectibles :: [Point] -> [Collectible] -> [Collectible] -- for now, to get some basic ones "installed"
-genCollectibles walls specials = specials ++ [ Collectible NoEffect 10 orange p | p <- genCenters, notElem p walls, notElem p specialPoints]
-  where
-    specialPoints = [ pt | (Collectible _ _ _ pt) <- specials ]
-
-genCenters :: [Point]
-genCenters = [ (x, y) | x <- [-475, -425..475], y <- [-475, -425..225] ]
-
-genNeighbor :: Direction -> Point -> [Point] -> Neighbor
-genNeighbor dir (x, y) walls 
-  | dir == UP = if outOfBounds (x, y + 50) || elem (x, y + 50) walls then Null else Neighbor dir (x, y + 50) (x, y)
-  | dir == DOWN = if outOfBounds (x, y - 50) || elem (x, y - 50) walls then Null else Neighbor dir (x, y - 50) (x, y)
-  | dir == LEFT = if outOfBounds (x - 50, y) || elem (x - 50, y) walls then Null else Neighbor dir (x - 50, y) (x, y)
-  | dir == RIGHT = if outOfBounds (x + 50, y) || elem (x + 50, y) walls then Null else Neighbor dir (x + 50, y) (x, y)
-  | otherwise = Null
-
-genPlayer :: Player 
-genPlayer = Player playerStartPoint ( playerStartPoint, []) NONE NONE drawPlayer updatePlayer False
-
-genLevel :: Int -> Board
-genLevel lvlNum 
-  | lvlNum == 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls) lvl1SpecialCollectibles) playerInitLives playerInitScore drawBoard updateBoard genPlayer genGhosts False []
-  | otherwise = Board [] [] [] 0 0 drawBoard updateBoard genPlayer genGhosts False []
-
+-- simple helper to reference what is out of bounds at this specific window.
 outOfBounds :: Point -> Bool
 outOfBounds (x, y) = x > 500 || x < -500 || y > 250 || y < -500
 
@@ -225,30 +242,56 @@ BOARD DRAWING FUNCTIONS
 ------------------------------------------------------------
 -}
 
-
+-- draw the board pieces
 drawBoard :: Board -> [Picture]
-drawBoard (Board ts ps cs l s d u (Player locP desP currP nextP dP uP coll) gs gOver timers) = drawScore s : drawLives l :  (drawGrid ts ++ drawCollectibles cs) ++ ((dP (Player locP desP currP nextP dP uP coll)) : drawGhosts gs)
+drawBoard (Board ts ps cs l s d u (Player locP desP currP nextP dP uP coll) gs gOver timers) = 
+  drawScore s : drawLives l :  (drawGrid ts ++ drawCollectibles cs) ++ ((dP (Player locP desP currP nextP dP uP coll)) : drawGhosts gs)
 
-drawGrid :: [Tile] -> [Picture] -- todo: change these to tail recursion
+-- draw the game board grid
+drawGrid :: [Tile] -> [Picture]
 drawGrid  [] = [] 
 drawGrid (t:ts) = drawTile t : drawBorder t : drawGrid ts
 
+-- draw all collectibles
 drawCollectibles :: [Collectible] -> [Picture]
 drawCollectibles = map drawCollectible
 
+-- draw a single collectibles
 drawCollectible :: Collectible -> Picture
-drawCollectible (Collectible _ _ c (x, y)) = color c (translate x y (thickCircle 5 10))
+drawCollectible (Collectible _ _ c (x, y)) = color c (translate x y (thickCircle collRadius collThickness))
 
+-- draw how many lives left for pacman
 drawLives :: Int -> Picture
 drawLives l = scale 0.5 0.5 (translate (-1000) 800 (Text ("Lives: " ++ show l)))
 
+-- draw the current pacman score
 drawScore :: Int -> Picture
 drawScore s = scale 0.5 0.5 (translate (-1000) 600 (Text ("Score: " ++ show s)))
 
+-- draw the tiles of the board
 drawTile :: Tile -> Picture
 drawTile (Tile c (Boundary bottom top left right)) = 
   color c (Polygon [(left, top), (right, top), (right, bottom), (left, bottom)])
 
+-- draw boarder so tiles/paths are more easily visible
 drawBorder :: Tile -> Picture
 drawBorder (Tile _ (Boundary bottom top left right)) = 
   color black (Line [(left, top), (right, top), (right, bottom), (left, bottom)])
+
+{-
+------------------------------------------------------------
+BOARD CONSTANTS
+------------------------------------------------------------
+-}
+
+collisionBumper :: Float
+collisionBumper = 40
+
+defaultCollScore :: Int
+defaultCollScore = 10
+
+collRadius :: Float
+collRadius = 5
+
+collThickness :: Float 
+collThickness = 10

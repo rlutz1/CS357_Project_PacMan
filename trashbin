@@ -462,3 +462,8 @@ essentially getters for easy reading
 
 -- deconTracks :: Neighbor -> [Track]
 -- deconTracks (Neighbor _ tracks) = tracks
+-- up down left right
+-- data Pivot = Pivot Point (Neighbor, Neighbor, Neighbor, Neighbor)
+-- data Neighbor = Null | Neighbor Direction Destination From
+
+-- rgb(157, 157, 157)-- rgb(157, 157, 157)
