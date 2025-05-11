@@ -435,3 +435,30 @@ what is this method doing?
 
 it's basically there to see if the timer is up and revert
 -}
+
+-- dfsRefill :: Board -> Point -> Point -> Pivot -> [Point] -> [Track] -> [Track]
+-- dfsRefill b dest curr (Pivot pt (up, down, left, right)) visited path
+--   | dest == curr || null validNeighbors = path
+--   | otherwise = 
+--       dfsRefill b dest (getNeighborPoint (head validNeighbors)) (getPiv (getPivot (getNeighborPoint (head validNeighbors)) b)) (pt:visited) (path ++ (getNeighborTrack (head validNeighbors)))
+
+    
+
+
+-- getNeighborTrack :: Neighbor -> [Track]
+-- getNeighborTrack (Neighbor _ track) = track
+-- getNeighborTrack _ = error "don't give this null, dummy"
+
+{-
+------------------------------------------------------------
+DECONSTRUCTORS
+
+essentially getters for easy reading
+------------------------------------------------------------
+-}
+
+-- deconDestination :: Neighbor -> Destination
+-- deconDestination (Neighbor _ dest _) = dest
+
+-- deconTracks :: Neighbor -> [Track]
+-- deconTracks (Neighbor _ tracks) = tracks
