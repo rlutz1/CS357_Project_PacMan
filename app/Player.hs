@@ -55,10 +55,11 @@ changeDir (Player loc (point, ts) curr next d u coll) b
 quickChangeDir :: Player -> Board -> Player
 quickChangeDir (Player loc (point, ts) curr next d u coll) b 
   | nextNeighbor == Null = sameDir (Player loc (point, ts) curr curr d u coll) b 
-  | otherwise = Player loc (getNeighborPoint nextNeighbor, genTracks defaultSpeed next loc (getNeighborPoint nextNeighbor)) next next d u coll
+  | otherwise = Player loc (getNeighborPoint nextNeighbor, suddenTrackChange) next next d u coll
   where 
     nextPiv = getPivot point b
     nextNeighbor = getSpecificNeighbor nextPiv next 
+    suddenTrackChange = genTracks defaultSpeed next loc (getNeighborPoint nextNeighbor)
 
 -- attempt to go in the same direction if you run out of path and don't change direction. don't move at all when hitting walls.
 sameDir :: Player -> Board -> Player
