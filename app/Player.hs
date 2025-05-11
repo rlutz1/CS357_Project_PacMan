@@ -38,7 +38,8 @@ PLAYER MOVEMENT FUNCTIONS
 movePlayer :: Player -> Board -> Player
 movePlayer (Player loc (dest, []) curr next d u coll) _ = Player loc (dest, [loc]) curr next d u coll
 movePlayer (Player _ (dest, t:ts) curr next d u coll) b
-  | curr /= next && nearPivot ts = changeDir (Player t (dest, ts) curr next d u coll) b
+  | curr /= next && not (opposing curr next) && nearPivot ts = changeDir (Player t (dest, ts) curr next d u coll) b
+  | curr /= next && opposing curr next = quickChangeDir (Player t (dest, ts) curr next d u coll) b
   | otherwise = sameDir (Player t (dest, ts) curr curr d u coll) b
     
 -- attempt to change direction if that is a valid pathway. otherwise keep moving in same direction
@@ -50,10 +51,14 @@ changeDir (Player loc (point, ts) curr next d u coll) b
     nextPiv = getPivot point b
     nextNeighbor = getSpecificNeighbor nextPiv next 
 
--- generate a list of movements based on which neighbor we want to head to
-genMovement :: Neighbor -> [Track]
-genMovement Null = error "dont' give this null!!"
-genMovement (Neighbor dir dest from) = genTracks defaultSpeed dir from dest
+-- quickly change direction since we are just wanting to oppose the current movement.
+quickChangeDir :: Player -> Board -> Player
+quickChangeDir (Player loc (point, ts) curr next d u coll) b 
+  | nextNeighbor == Null = sameDir (Player loc (point, ts) curr curr d u coll) b 
+  | otherwise = Player loc (getNeighborPoint nextNeighbor, genTracks defaultSpeed next loc (getNeighborPoint nextNeighbor)) next next d u coll
+  where 
+    nextPiv = getPivot point b
+    nextNeighbor = getSpecificNeighbor nextPiv next 
 
 -- attempt to go in the same direction if you run out of path and don't change direction. don't move at all when hitting walls.
 sameDir :: Player -> Board -> Player
@@ -66,9 +71,22 @@ sameDir (Player loc (point, [t]) curr _ d u coll) b
     nextNeighbor = getSpecificNeighbor nextPiv curr
 sameDir (Player loc (point, ts) curr next d u coll) _ = Player loc ( point, ts) curr next d u coll 
 
+-- generate a list of movements based on which neighbor we want to head to
+genMovement :: Neighbor -> [Track]
+genMovement Null = error "dont' give this null!!"
+genMovement (Neighbor dir dest from) = genTracks defaultSpeed dir from dest
+
 -- simple helper to see if pacman is close enough to request a change in direction
 nearPivot :: [a] -> Bool
 nearPivot xs = length xs <= 25
+
+-- simple, is the current direction directly opposing the motion of current movement
+opposing :: Direction -> Direction -> Bool
+opposing RIGHT LEFT = True
+opposing LEFT RIGHT = True
+opposing UP DOWN = True
+opposing DOWN UP = True
+opposing _ _ = False
 
 {-
 ------------------------------------------------------------
