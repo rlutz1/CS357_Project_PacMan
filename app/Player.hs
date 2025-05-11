@@ -2,12 +2,14 @@
 module Player where
 
 import Brillo
--- -- import Board
 import Data
 import Utils
 
-
-
+{-
+  @author Roxanne Lutz
+  all player logic and utilities with movement,
+  updating, and drawing.
+-}
 
 
 {-

@@ -4,9 +4,11 @@ pacman game in haskell!
 + ~~overhaul the tracking system~~
 + remove destination from ghosts
 + remove direction from ghosts
-+ remove arg from valid neighbors thing, all is shuffled now
-+ get neighbor -> gen neighbor
-+ get tracks -> get neighbor
++ ~~remove arg from valid neighbors thing, all is shuffled now~~
++ ~~get neighbor -> gen neighbor~~
++ ~~get tracks -> get neighbor~~
++ holy shit turn coll detection back on on start ha
+
 
 ## todo 4/28 - 5/2
 + change the damn collectibles thing to just remove a collectible from the list if eaten. no more eaten crap, it'll make everything far more efficient there.
