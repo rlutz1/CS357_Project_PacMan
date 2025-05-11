@@ -164,7 +164,7 @@ drawGameWonNotification :: [Picture]
 drawGameWonNotification = [
   color (makeColor 0.616 0.616 0.616 1) (rectangleSolid 750 400),
   scale 0.25 0.25 (translate (-350) (200) (Text "YOU WON!")),
-  scale 0.25 0.25 (translate (-1250) (0) (Text "You did escape the spooky ghosts!")),
+  scale 0.25 0.25 (translate (-1000) (0) (Text "You did escape the spooky ghosts!")),
   scale 0.25 0.25 (translate (-800) (-200) (Text "Press G to back to menu"))
   ]
 
@@ -173,7 +173,7 @@ drawGameLostNotification :: [Picture]
 drawGameLostNotification = [
   color (makeColor 0.616 0.616 0.616 1) (rectangleSolid 750 400),
   scale 0.25 0.25 (translate (-400) (200) (Text "YOU FAILED!")),
-  scale 0.25 0.25 (translate (-1250) (0) (Text "You did not escape the ghosts.")),
+  scale 0.25 0.25 (translate (-1000) (0) (Text "You did not escape the ghosts.")),
   scale 0.25 0.25 (translate (-800) (-200) (Text "Press G to back to menu"))
   ]
 

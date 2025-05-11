@@ -24,7 +24,7 @@ updatePlayer = movePlayer
 
 -- generate the player on the board
 genPlayer :: Player 
-genPlayer = Player playerStartPoint ( playerStartPoint, []) NONE NONE drawPlayer updatePlayer False
+genPlayer = Player playerStartPoint ( playerStartPoint, []) NONE NONE drawPlayer updatePlayer True
 
 {-
 ------------------------------------------------------------
