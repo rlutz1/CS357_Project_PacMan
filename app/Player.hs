@@ -18,8 +18,13 @@ UPDATE FUNCTIONS
 ------------------------------------------------------------
 -}
 
+-- update player, but mostly just move player
 updatePlayer :: Player -> Board -> Player
 updatePlayer = movePlayer
+
+-- generate the player on the board
+genPlayer :: Player 
+genPlayer = Player playerStartPoint ( playerStartPoint, []) NONE NONE drawPlayer updatePlayer False
 
 {-
 ------------------------------------------------------------

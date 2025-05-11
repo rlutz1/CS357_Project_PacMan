@@ -121,6 +121,8 @@ updateTitle _ w = w
 -- function to handle input at title 
 handleTitle :: Event -> World -> World
 handleTitle (EventKey (Char '1') Down _ _) w = getLevel1
+handleTitle (EventKey (Char '2') Down _ _) w = getLevel2
+handleTitle (EventKey (Char '3') Down _ _) w = getLevel3
 handleTitle _ w = w
 
 {-
@@ -132,6 +134,14 @@ DISPLAY AND WORLD FUNCTIONS
 -- get me the first level
 getLevel1 :: World
 getLevel1 = MainGameWorld (genLevel 1) drawMain updateMain handleMain
+
+-- get me the second level
+getLevel2 :: World
+getLevel2 = MainGameWorld (genLevel 2) drawMain updateMain handleMain
+
+-- get me the third level
+getLevel3 :: World
+getLevel3 = MainGameWorld (genLevel 3) drawMain updateMain handleMain
 
 -- get me the title screen
 getTitle :: World 

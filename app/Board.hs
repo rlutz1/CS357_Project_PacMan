@@ -213,13 +213,11 @@ genNeighbor dir piv pt walls
   | outOfBounds pt || elem pt walls = Null 
   | otherwise = Neighbor dir pt piv
 
--- generate the player on the board
-genPlayer :: Player 
-genPlayer = Player playerStartPoint ( playerStartPoint, []) NONE NONE drawPlayer updatePlayer False
-
 -- generate the level depending on input from user
 genLevel :: Int -> Board
 genLevel 1 = Board (genTiles lvl1Walls) (genPivots lvl1Walls) (genCollectibles (playerStartPoint:lvl1Walls) lvl1SpecialCollectibles) playerInitLives playerInitScore drawBoard updateBoard genPlayer genGhosts False []
+genLevel 2 = Board (genTiles lvl2Walls) (genPivots lvl2Walls) (genCollectibles (playerStartPoint:lvl2Walls) lvl2SpecialCollectibles) playerInitLives playerInitScore drawBoard updateBoard genPlayer genGhosts False []
+genLevel 3 = Board (genTiles lvl3Walls) (genPivots lvl3Walls) (genCollectibles (playerStartPoint:lvl3Walls) lvl3SpecialCollectibles) playerInitLives playerInitScore drawBoard updateBoard genPlayer genGhosts False []
 genLevel _ = Board [] [] [] 0 0 drawBoard updateBoard genPlayer genGhosts False []
 
 -- generate the tiles for the board. tiles are mainly for graphical purposes only and can be both path or wall

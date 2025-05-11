@@ -5,6 +5,7 @@ import Data
 {-
   @author Roxanne Lutz
   setup of each level of the board. specify walls and special collectibles.
+  very silly and hardcoded.
 -}
 
 
@@ -42,3 +43,27 @@ lvl1SpecialCollectibles = [
   Collectible (GhostsOff 5.0) 5 red (-75, 125),
   Collectible (GhostsOff 5.0) 5 red (75, 125)
   ]
+
+{-
+------------------------------------------------------------
+LEVEL 2
+------------------------------------------------------------
+-}
+
+lvl2Walls :: [Point]
+lvl2Walls = []
+
+lvl2SpecialCollectibles :: [Collectible]
+lvl2SpecialCollectibles = []
+
+{-
+------------------------------------------------------------
+LEVEL 3
+------------------------------------------------------------
+-}
+
+lvl3Walls :: [Point]
+lvl3Walls = []
+
+lvl3SpecialCollectibles :: [Collectible]
+lvl3SpecialCollectibles = []
