@@ -1,13 +1,20 @@
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 module Board where
--- nothing! bookmark cahnge
+
 import Brillo
 import Data
-import Data.Word
-import System.Random
--- import Ghost
--- import Player
+import Utils
+import Ghost
+import Player
 
+
+{-
+------------------------------------------------------------
+BOARD UPDATE FUNCTIONS
+------------------------------------------------------------
+-}
+
+-- general case main update board function, called each frame
 updateBoard :: Board -> Float -> Board
 updateBoard (Board ts ps cs ls s dB uB p gs gOver timers) dt = 
   do
@@ -17,78 +24,22 @@ updateBoard (Board ts ps cs ls s dB uB p gs gOver timers) dt =
     let updatedEffects = updateEffects updatedColls dt []
     checkCollision (updatedEffects) updatedP updatedGs
 
-{-
-for checking the timers, removing effects as necessary.
-but we need to keep timers as they come
-
-what is this method doing? 
-
-it's basically there to see if the timer is up and revert
--}
-updateEffects :: Board -> Float -> [(Effect, Float, Float)] -> Board
-updateEffects (Board ts ps cs lives s dB uB op ogs gOver []) dt acc = (Board ts ps cs lives s dB uB op ogs gOver acc)
-updateEffects (Board ts ps cs lives s dB uB op ogs gOver ((eff, timer, end):timers)) dt acc
-  | timesUp (eff, timer, end) = updateEffects (removeEffect (Board ts ps cs lives s dB uB op ogs gOver timers) (eff, timer, end)) dt acc
-  | otherwise = updateEffects (Board ts ps cs lives s dB uB op ogs gOver timers) dt ((eff, timer + dt , end):acc)--add time to timer and keep checking through
-
-removeEffect :: Board -> (Effect, Float, Float) -> Board
-removeEffect (Board ts ps cs lives s dB uB op ogs gOver timers) (NoEffect, _, _) = (Board ts ps cs lives s dB uB op ogs gOver timers) -- should never happen, but to be clean
-removeEffect (Board ts ps cs lives s dB uB (Player locP desP currP nextP dP uP coll) ogs gOver timers) ((GhostsOff _), _, _)
-  = Board ts ps cs lives s dB uB (Player locP desP currP nextP dP uP True) (drawGhostsOn ogs) gOver timers
--- turn on coll detection. -- update the drawing func i think
-
-timesUp :: (Effect, Float, Float) -> Bool
-timesUp (_, timer, end) = timer >= end
-
 checkCollision :: Board -> Player -> [Ghost] -> Board
 checkCollision b p [] = b
 checkCollision 
   (Board ts ps cs lives s dB uB op ogs gOver timers)
   (Player locP desP currP nextP dP uP coll) 
   ((Ghost name locG desG currG nextG dG uG inf):gs)
-    | coll = if collisionDetected locP locG then chugBeer (Board ts ps cs lives s dB uB op ogs gOver timers) else checkCollision (Board ts ps cs lives s dB uB op ogs gOver timers) (Player locP desP currP nextP dP uP coll) gs
+    | coll = if collisionDetected locP locG then kill (Board ts ps cs lives s dB uB op ogs gOver timers) else checkCollision (Board ts ps cs lives s dB uB op ogs gOver timers) (Player locP desP currP nextP dP uP coll) gs
     | otherwise = Board ts ps cs lives s dB uB op ogs gOver timers
- 
-chugBeer :: Board -> Board
-chugBeer (Board ts ps cs lives s dB uB op ogs gOver timers) 
-  | checkGameOver (lives - 1) = Board ts ps cs lives s drawGameOver (\b f -> b) op ogs True timers
+
+-- kill the pacman! he ran into a ghost!
+kill :: Board -> Board
+kill (Board ts ps cs lives s dB uB op ogs gOver timers) 
+  | checkGameOver (lives - 1) = Board ts ps cs lives s drawGameLost (\b f -> b) op ogs True timers
   | otherwise = Board ts ps cs (lives - 1) s dB uB genPlayer genGhosts gOver timers
 
-drawGameOver :: Board -> [Picture]
-drawGameOver b =  drawBoard b ++ drawGameOverNotification
-
--- rgb(157, 157, 157)
-drawGameOverNotification :: [Picture]
-drawGameOverNotification = [
-  color (makeColor 0.616 0.616 0.616 1) (rectangleSolid 750 400),
-  scale 0.25 0.25 (translate (-400) (200) (Text "YOU FAILED!")),
-  scale 0.25 0.25 (translate (-1250) (0) (Text "You did not escape the ghosts.")),
-  scale 0.25 0.25 (translate (-800) (-200) (Text "Press G to back to menu"))
-  ]
-
-collisionDetected :: Point -> Point -> Bool
-collisionDetected (x1, y1) (x2, y2)
-  | sameCol (x1, y1) (x2, y2) = max y1 y2 - min y1 y2 < 40
-  | sameRow (x1, y1) (x2, y2) = max x1 x2 - min x1 x2 < 40
-  | otherwise = False
-  
-sameCol :: Point -> Point -> Bool
-sameCol (x1, _) (x2, _) = x1 == x2
-
-sameRow :: Point -> Point -> Bool
-sameRow (_, y1) (_, y2) = y1 == y2
-  
-checkGameOver :: Int -> Bool
-checkGameOver x = x < 0
-
-{-
-okay let's think it through.
-when we find the collectible, we need to see what kind it is.
-within the collectible there is an effect associated. 
-it feels like we need to test upon the effect. 
-what do we want to happen based on the cherry effect
--}
--- terribly inefficient, poorly organized, this would be better encapsed in player some how...but idk yet
+-- update the collectibles list as needed as player roams the board
 updateCollectibles :: Board -> Board 
 updateCollectibles (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver timers) 
   | length filteredColls < length cs = 
@@ -100,63 +51,30 @@ updateCollectibles (Board ts ps cs l s d u (Player loc dest curr next dp up coll
   where
     filteredColls = filter (\c -> deconCollLoc c /= loc) cs
 
+-- helper to filter through each potential "effect" on the board and make updates as needed, esp to timers
 enactEffect :: [Collectible] -> Maybe Collectible ->  Board -> Board
-
-{-
-to do here:
-need to update the ghost drawing function to be like white or some shit, basic user feedback
-trickiest part: need to have some sort of timing mechanism.
-
-thots on timing.
-could add another thing to the player or board.
-i like player more.
-it would be hypothetically reasonable to have many collectibles with diff effects
-have a [] of what would effectively be timers
-thinking something like (float, effect, float(end effect time?))
-so that if we don't have that effect in the list, add it, start timer as 0, and set whatever the effect end time is (can be within the collectible)
-if we already have that effect in the list, simply reset the timer. or add to end time, whatever makes sense
-if timer >= end, effect is off, "remove" it from the timer list
-  actually, have updateplayer check the effect timers as well as move the player. that's just fine.
-  then we will need some sort of checkActiveEffects that takes the board that sees what effects are on going in the player's timers, and changes the drawing or update functions needed?
-
-then it really just comes down to how to have a timer. 
-we do ignore the time since last frame value in update in main rn. 
-i could give that to the update function and see how that works.
-
--}
-
-enactEffect -- maybe this could just take the player? if we're doing things elsewhere for the board
+enactEffect 
   filteredColls -- filtered out the eaten coll
-  (Just (Collectible (GhostsOff time) score color' pos)) -- this should always be given here  
+  (Just (Collectible (GhostsOff time) score color' pos)) -- ghosts off effect
   (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver timers) =
-    Board ts ps filteredColls l (s + score) d u (Player loc dest curr next dp up False) (drawGhostsOff gs) gOver (addToTimers (GhostsOff time) timers) -- the board
-
-enactEffect -- maybe this could just take the player? if we're doing things elsewhere for the board
+    Board ts ps filteredColls l (s + score) d u (Player loc dest curr next dp up False) (drawGhostsOff gs) gOver (addToTimers (GhostsOff time) timers)
+enactEffect 
   filteredColls -- filtered out the eaten coll
-  (Just (Collectible _ score color' pos)) -- this should always be given here  
+  (Just (Collectible _ score color' pos)) -- nothing to do here
   (Board ts ps cs l s d u (Player loc dest curr next dp up collDetect) gs gOver timers) =
     Board ts ps filteredColls l (s + score) d u (Player loc dest curr next dp up collDetect) gs gOver timers
+enactEffect 
+  _ Nothing b = b -- this hypothetically should never happen, but here anyway
 
-enactEffect _ Nothing b = b -- this hypothetically should never happen, but here anyway
+-- update the timers as needed, but if we've gone past the time limit, remove the timer and reverse any effects as needed
+updateEffects :: Board -> Float -> [(Effect, Float, Float)] -> Board
+updateEffects (Board ts ps cs lives s dB uB op ogs gOver []) dt acc = (Board ts ps cs lives s dB uB op ogs gOver acc)
+updateEffects (Board ts ps cs lives s dB uB op ogs gOver ((eff, timer, end):timers)) dt acc
+  | timesUp (eff, timer, end) = updateEffects (removeEffect (Board ts ps cs lives s dB uB op ogs gOver timers) (eff, timer, end)) dt acc
+  | otherwise = updateEffects (Board ts ps cs lives s dB uB op ogs gOver timers) dt ((eff, timer + dt , end):acc)
 
-drawGhostsOff :: [Ghost] -> [Ghost]
-drawGhostsOff [] = []
-drawGhostsOff ((Ghost name locG desG currG nextG _ uG inf):gs) = Ghost name locG desG currG nextG (drawGhost white) uG inf : drawGhostsOff gs
-
-drawGhostsOn :: [Ghost] -> [Ghost]
-drawGhostsOn  [] = []
-drawGhostsOn  ((Ghost name locG desG currG nextG _ uG inf):gs)
-    | name == "Blinky" = Ghost name locG desG currG nextG (drawGhost blinkyDefColor) uG inf : drawGhostsOn gs
-    | name == "Inky"   = Ghost name locG desG currG nextG (drawGhost inkyDefColor) uG inf : drawGhostsOn gs
-    | name == "Pinky"  = Ghost name locG desG currG nextG (drawGhost pinkyDefColor) uG inf : drawGhostsOn gs
-    | otherwise        = Ghost name locG desG currG nextG (drawGhost clydeDefColor) uG inf : drawGhostsOn gs
--- test :: Player -> Picture
--- test (Player (x, y) _ _ _ _ _ _) = color red (translate x y (thickCircle 10 20))
-
-
-
+-- function for adding an effect timer OR resetting if the effect is already active.
 addToTimers :: Effect -> [(Effect, Float, Float)] -> [(Effect, Float, Float)]
--- addToTimers _ ts = ts
 addToTimers NoEffect ts = ts
 addToTimers effect ts = go effect ts
   where 
@@ -165,12 +83,63 @@ addToTimers effect ts = go effect ts
       | eff == e = (e, 0, end):ts
       | otherwise = (e, runtimetime, end) : go eff ts
 
+-- remove any effects from the board, time is up
+removeEffect :: Board -> (Effect, Float, Float) -> Board
+removeEffect (Board ts ps cs lives s dB uB op ogs gOver timers) (NoEffect, _, _) = (Board ts ps cs lives s dB uB op ogs gOver timers)
+removeEffect (Board ts ps cs lives s dB uB (Player locP desP currP nextP dP uP coll) ogs gOver timers) ((GhostsOff _), _, _)
+  = Board ts ps cs lives s dB uB (Player locP desP currP nextP dP uP True) (drawGhostsOn ogs) gOver timers
+
+-- simple helper function to test if timer is up
+timesUp :: (Effect, Float, Float) -> Bool
+timesUp (_, timer, end) = timer >= end
+
+-- simple helper function to see if pacman has run out of lives
+checkGameOver :: Int -> Bool
+checkGameOver x = x < 0
+
+-- deconstructor to grab the time allotted for the effect
 effectTime :: Effect -> Float
 effectTime (GhostsOff time) = time
 effectTime NoEffect = 0
 
+-- collision detection: are you within the defined limit of a ghost; number considers center -> center distance of circle center
+collisionDetected :: Point -> Point -> Bool
+collisionDetected (x1, y1) (x2, y2)
+  | sameCol (x1, y1) (x2, y2) = max y1 y2 - min y1 y2 < 40
+  | sameRow (x1, y1) (x2, y2) = max x1 x2 - min x1 x2 < 40
+  | otherwise = False
+
+-- little helper function for readability, simply testing if null collectible list
+allEaten :: [Collectible] -> Bool
+allEaten [] = True
+allEaten _ = False
+
+-- deconstruct the points from the collectible and return
+updateScore :: Maybe Collectible -> Int
+updateScore Nothing = 0
+updateScore (Just (Collectible _ s _ _)) = s
+
+-- see if there is a collectible at the players current location
+findColl :: Point -> [Collectible] -> Maybe Collectible
+findColl p [] = Nothing
+findColl p ((Collectible e s c pt):cs)
+  | p == pt = Just (Collectible e s c pt)
+  | otherwise = findColl p cs
+
+-- deconstructor for the collectible location
+deconCollLoc :: Collectible -> Point
+deconCollLoc (Collectible _ _ _ p) = p
+
+{-
+------------------------------------------------------------
+BOARD DRAWING FUNCTIONS
+------------------------------------------------------------
+-}
 drawGameWon :: Board -> [Picture]
 drawGameWon b =  drawBoard b ++ drawGameWonNotification
+
+drawGameLost :: Board -> [Picture]
+drawGameLost b =  drawBoard b ++ drawGameLostNotification
 
 -- rgb(157, 157, 157)
 drawGameWonNotification :: [Picture]
@@ -181,22 +150,16 @@ drawGameWonNotification = [
   scale 0.25 0.25 (translate (-800) (-200) (Text "Press G to back to menu"))
   ]
 
-allEaten :: [Collectible] -> Bool
-allEaten [] = True
-allEaten _ = False
+-- rgb(157, 157, 157)
+drawGameLostNotification :: [Picture]
+drawGameLostNotification = [
+  color (makeColor 0.616 0.616 0.616 1) (rectangleSolid 750 400),
+  scale 0.25 0.25 (translate (-400) (200) (Text "YOU FAILED!")),
+  scale 0.25 0.25 (translate (-1250) (0) (Text "You did not escape the ghosts.")),
+  scale 0.25 0.25 (translate (-800) (-200) (Text "Press G to back to menu"))
+  ]
 
-updateScore :: Maybe Collectible -> Int
-updateScore Nothing = 0
-updateScore (Just (Collectible _ s _ _)) = s
 
-findColl :: Point -> [Collectible] -> Maybe Collectible
-findColl p [] = Nothing
-findColl p ((Collectible e s c pt):cs)
-  | p == pt = Just (Collectible e s c pt)
-  | otherwise = findColl p cs
-
-deconCollLoc :: Collectible -> Point
-deconCollLoc (Collectible _ _ _ p) = p
 
 {-
 ------------------------------------------------------------
@@ -570,60 +533,7 @@ DRAW FUNCTIONS
 
 
 
-{-
-------------------------------------------------------------
-GHOST MOVEMENT FUNCTIONS
-------------------------------------------------------------
--}
 
--- i may not need directions for the ghosts
--- below are where the ai decision making movesments should live
-
--- the nuke
-moveBlinky :: Ghost -> Board -> Ghost
-moveBlinky (Ghost name loc ( point, []) curr next d u inf) b 
-  = Ghost name loc ( point, [loc]) curr next d u inf
-moveBlinky (Ghost name loc ( point, [t]) curr next d u inf) b 
-  = Ghost name t (getPlayerDestination b, nukeButSlow b (getPlayerDestination b) (addPaths (getValidNeighbors b t) []) [point]) curr next d u inf
-moveBlinky (Ghost name loc (dest, t:ts) curr next d u inf) _ = Ghost name t (dest, ts) curr next d u inf
-
--- the nuke but only when player happens to be in same row/col when refilling, otherwise meanderer
-movePinky :: Ghost -> Board -> Ghost
-movePinky (Ghost name loc (point, []) curr next d u inf) b 
-  = Ghost name loc ( point, [loc]) curr next d u inf
-movePinky (Ghost name (x, y) (point, [t]) curr next d u (i:inf)) b
-  | sameCol (getPlayerLocation b) (x, y) || sameRow (getPlayerLocation b) (x, y) = Ghost name t ((getPlayerDestination b), nuke b (getPlayerDestination b) (addPaths (getValidNeighbors b t) []) [point]) curr next d u inf-- NUKE
-  | otherwise = Ghost name t (getPlayerDestination b, meander i b (giveRandomNeighbor (getValidNeighbors b t) i) [point] []) curr next d u inf
-movePinky (Ghost name loc (point, t:ts) curr next d u inf) b = Ghost name t (point, ts) curr next d u inf
-
-getRandomOrder :: Float -> Int -- REMOVE
-getRandomOrder x = (abs (round x) * 7) `mod` 2
--- getRandomOrder :: Float -> Int
--- getRandomOrder _ = 2
-
--- a meanderer
-moveInky :: Ghost -> Board -> Ghost
-moveInky (Ghost name loc (point, []) curr next d u inf) b 
-  = Ghost name loc (point, [loc]) curr next d u inf
-moveInky (Ghost name (x, y) (point, [t]) curr next d u (i:inf)) b 
-  = Ghost name t (getPlayerDestination b, meander i b (giveRandomNeighbor (getValidNeighbors b t) i) [point] []) curr next d u inf
-moveInky (Ghost name loc (dest, t:ts) curr next d u inf) _ = Ghost name t (dest, ts) curr next d u inf
-
--- a meanderer
-moveClyde :: Ghost -> Board -> Ghost
-moveClyde (Ghost name loc (point, []) curr next d u inf) b 
-  = Ghost name loc (point, [loc]) curr next d u inf
-moveClyde (Ghost name (x, y) ( point, [t]) curr next d u (i:inf)) b 
-  = Ghost name t (getPlayerDestination b, meander i b (giveRandomNeighbor (getValidNeighbors b t) i) [point] []) curr next d u inf
-moveClyde (Ghost name loc (dest, t:ts) curr next d u inf) _ = Ghost name t (dest, ts) curr next d u inf
-
-
-
-giveRandomNeighbor :: [Neighbor] -> Int -> Neighbor
-giveRandomNeighbor [] _ = Null
-giveRandomNeighbor ns seed = head shuffled
-  where
-    shuffled = fst (uniformShuffleList ns (mkStdGen seed))
 
 getPlayerLocation :: Board -> Point
 getPlayerLocation (Board ts ps cs l s dB uB (Player loc _ _ _ _ _ _) gs gOver timers) = loc
