@@ -105,7 +105,6 @@ moveClyde (Ghost name (x, y) ( point, [t]) d u (i:inf)) b
   = Ghost name t (getPlayerDestination b, meander defaultSpeed i b (giveRandomNeighbor (getValidNeighbors b t) i) [point] []) d u inf
 moveClyde (Ghost name loc (dest, t:ts) d u inf) _ = Ghost name t (dest, ts) d u inf
 
-
 -- simply build a path through the board until you cannot go any further. dfs-like.
 meander :: Float -> Int -> Board -> Neighbor -> [Point] -> [Track] -> [Track]
 meander speed seed b (Neighbor dir dest from) visited path 
@@ -116,6 +115,7 @@ meander speed seed b (Neighbor dir dest from) visited path
     unvisited = getUnvisited next visited
     tracksToNeighbor = genTracks speed dir from dest
 
+-- find the shortest path to the player. it is a bfs shortest path algo.
 nuke :: Float -> Board -> Point -> [(Neighbor, [Track])] ->  [Point] -> [Track]
 nuke speed b ultimateDest ((Neighbor dir dest from, path):queue) visited 
   | dest == ultimateDest = path ++ tracksToNeighbor
@@ -123,16 +123,17 @@ nuke speed b ultimateDest ((Neighbor dir dest from, path):queue) visited
     if dest `elem` visited 
       then nuke speed b ultimateDest (queue) (visited) 
       else  nuke speed b ultimateDest (queue ++ nextsWithPaths) (dest:visited)
-
   where
     next = getValidNeighbors b dest 
     tracksToNeighbor = genTracks speed dir from dest
     nextsWithPaths = addPaths next (path ++ tracksToNeighbor)
 
+-- utility for keeping track of paths created for bfs
 addPaths :: [Neighbor] -> [Track] -> [(Neighbor, [Track])]
 addPaths [] path = []
 addPaths (n:ns) path = (n, path) : addPaths ns path
 
+-- get all unvisited neighbors. essentially filter with some extra guards.
 getUnvisited :: [Neighbor] -> [Point] -> [Neighbor]
 getUnvisited [] _ = []
 getUnvisited ((Neighbor dir dest from):ns) vis 
@@ -146,28 +147,29 @@ giveRandomNeighbor ns seed = head shuffled
   where
     shuffled = fst (uniformShuffleList ns (mkStdGen seed))
 
-
-
-
 {-
 ------------------------------------------------------------
 GHOST DRAWING FUNCTIONS
 ------------------------------------------------------------
 -}
 
+-- main method to draw all ghosts on board
 drawGhosts :: [Ghost] -> [Picture]
-drawGhosts gs = go [] gs--foldr go [] gs --go gs board []
+drawGhosts gs = go [] gs
   where 
     go acc [] = acc
     go acc ((Ghost name loc path d u inf):gs) = go (d (Ghost name loc path d u inf) : acc) gs 
 
+-- draw an individual ghost
 drawGhost :: Color -> Ghost -> Picture
 drawGhost c (Ghost _ (x, y) _ _ _ _) = color c (translate x y (thickCircle 10 20))
 
+-- diff draw function if collision detection turned off
 drawGhostsOff :: [Ghost] -> [Ghost]
 drawGhostsOff [] = []
 drawGhostsOff ((Ghost name locG desG _ uG inf):gs) = Ghost name locG desG (drawGhost white) uG inf : drawGhostsOff gs
 
+-- diff draw function if collision detection turned on
 drawGhostsOn :: [Ghost] -> [Ghost]
 drawGhostsOn  [] = []
 drawGhostsOn  ((Ghost name locG desG _ uG inf):gs)
