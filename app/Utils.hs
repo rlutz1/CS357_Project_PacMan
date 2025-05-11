@@ -26,6 +26,15 @@ getValidNeighbors b pt = filter (/= Null) [up,  right, left, down]
   where 
     (Pivot _ (up, down, left, right)) = getPiv (getPivot pt b)
 
+getSpecificNeighbor :: Maybe Pivot -> Direction -> Neighbor
+getSpecificNeighbor Nothing _ = Null
+getSpecificNeighbor (Just (Pivot _ (upN, downN, leftN, rightN))) dir
+  | dir == UP = upN
+  | dir == DOWN = downN
+  | dir == LEFT = leftN
+  | dir == RIGHT = rightN
+  | otherwise = Null
+
 getPlayerLocation :: Board -> Point
 getPlayerLocation (Board ts ps cs l s dB uB (Player loc _ _ _ _ _ _) gs gOver timers) = loc
 

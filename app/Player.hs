@@ -25,73 +25,43 @@ PLAYER MOVEMENT FUNCTIONS
 ------------------------------------------------------------
 -}
 
-
-{-
-first, if the player currdir /= nextdir, check 
-  if they're at close enough to end of their track
-    grab the pivot (via player destination) from the board, try to grab the corresponding neighbor from that pivot
-    if its null
-      instead keep trying to go the same direction as before, can't turn there
-      if that is null, stop moving -- keep same location
-want to clean this up, works well enough to continue testing, but there's def some gunk to cut out
--}
+-- actual function for the moving the player based on input.
+-- player can only queue a move if they are close enough to a pivot,
+-- acknowledged limitation that should be eased up in future.
 movePlayer :: Player -> Board -> Player
 movePlayer (Player loc (dest, []) curr next d u coll) _ = Player loc (dest, [loc]) curr next d u coll
 movePlayer (Player _ (dest, t:ts) curr next d u coll) b
-  -- | opposing curr next = changeDir (Player t (dest, ts) curr next d u coll) b
-  | curr /= next && closeEnough ts = changeDir (Player t (dest, ts) curr next d u coll) b
+  | curr /= next && nearPivot ts = changeDir (Player t (dest, ts) curr next d u coll) b
   | otherwise = sameDir (Player t (dest, ts) curr curr d u coll) b
     
--- queueTracks :: Player -> Board -> Player
--- queueTracks (Player loc (dest, ts) curr next) b -- we are attempting oto queue up the next move
---   | curr /= next = changeDir (Player loc (dest, ts) curr next) b 
---   | otherwise = sameDir (Player loc (dest, ts) curr next) b 
- 
- --genTracks (1.0) dir from dest
--- todo clean up
-
-getTracks :: Maybe Pivot -> Direction -> Neighbor
-getTracks Nothing _ = Null
-getTracks (Just (Pivot _ (upN, downN, leftN, rightN))) dir
-  | dir == UP = upN
-  | dir == DOWN = downN
-  | dir == LEFT = leftN
-  | dir == RIGHT = rightN
-  | otherwise = Null
-
-
+-- attempt to change direction if that is a valid pathway. otherwise keep moving in same direction
 changeDir :: Player -> Board -> Player
-changeDir (Player loc ( point, ts) curr next d u coll) b 
+changeDir (Player loc (point, ts) curr next d u coll) b 
   | nextNeighbor == Null = sameDir (Player loc (point, ts) curr curr d u coll) b 
-  -- | opposing curr next Player loc (deconDest nextNeighbor, (genMovement nextNeighbor)) next next d u coll
   | otherwise = Player loc (deconDest nextNeighbor, ts ++ (genMovement nextNeighbor)) next next d u coll
   where 
     nextPiv = getPivot point b
-    nextNeighbor = getTracks nextPiv next 
+    nextNeighbor = getSpecificNeighbor nextPiv next 
 
-
-opposing :: Direction -> Direction -> Bool
-opposing LEFT RIGHT = True
-opposing UP DOWN = True
-opposing _ _ = False
-
+-- generate a list of movements based on which neighbor we want to head to
 genMovement :: Neighbor -> [Track]
 genMovement Null = error "dont' give this null!!"
-genMovement (Neighbor dir dest from) = genTracks (1.0) dir from dest
+genMovement (Neighbor dir dest from) = genTracks defaultSpeed dir from dest
 
--- todo clean up
+-- attempt to go in the same direction if you run out of path and don't change direction. don't move at all when hitting walls.
 sameDir :: Player -> Board -> Player
-sameDir (Player loc ( point, []) curr _ d u coll) _ = Player loc ( point, []) curr curr d u coll
-sameDir (Player loc ( point, [t]) curr _ d u coll) b
-  | nextNeighbor == Null = Player loc ( point, [t]) curr curr d u coll
+sameDir (Player loc (point, []) curr _ d u coll) _ = Player loc ( point, []) curr curr d u coll
+sameDir (Player loc (point, [t]) curr _ d u coll) b
+  | nextNeighbor == Null = Player loc (point, [t]) curr curr d u coll
   | otherwise = Player loc (deconDest nextNeighbor, t : (genMovement nextNeighbor)) curr curr d u coll
   where 
     nextPiv = getPivot point b
-    nextNeighbor = getTracks nextPiv curr
-sameDir (Player loc ( point, ts) curr next d u coll) _ = Player loc ( point, ts) curr next d u coll 
+    nextNeighbor = getSpecificNeighbor nextPiv curr
+sameDir (Player loc (point, ts) curr next d u coll) _ = Player loc ( point, ts) curr next d u coll 
 
-closeEnough :: [a] -> Bool
-closeEnough xs = length xs <= 25
+-- simple helper to see if pacman is close enough to request a change in direction
+nearPivot :: [a] -> Bool
+nearPivot xs = length xs <= 25
 
 {-
 ------------------------------------------------------------
@@ -99,8 +69,9 @@ PLAYER DRAWING FUNCTIONS
 ------------------------------------------------------------
 -}
 
+-- draw the player
 drawPlayer :: Player -> Picture
-drawPlayer (Player (x, y) _ _ _ _ _ _) = color yellow (translate x y (thickCircle 10 20))
+drawPlayer (Player (x, y) _ _ _ _ _ _) = color yellow (translate x y (thickCircle playerRadius playerThickness))
 
 {-
 ------------------------------------------------------------
@@ -117,4 +88,8 @@ playerInitLives = 3 -- todo: 3 for final
 playerInitScore :: Int
 playerInitScore = 0
 
+playerRadius :: Float
+playerRadius = 10
 
+playerThickness :: Float 
+playerThickness = 20

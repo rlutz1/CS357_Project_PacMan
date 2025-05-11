@@ -467,3 +467,10 @@ essentially getters for easy reading
 -- data Neighbor = Null | Neighbor Direction Destination From
 
 -- rgb(157, 157, 157)-- rgb(157, 157, 157)
+
+
+ -- discarded, not enough time to futz with this
+opposing :: Direction -> Direction -> Bool
+opposing LEFT RIGHT = True
+opposing UP DOWN = True
+opposing _ _ = False
