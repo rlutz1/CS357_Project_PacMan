@@ -47,7 +47,7 @@ getSpecificNeighbor (Just (Pivot _ (upN, downN, leftN, rightN))) dir
 
 -- deconstruct the player destination (where they're headed)
 getPlayerDestination :: Board -> Point
-getPlayerDestination (Board ts ps cs l s dB uB (Player _ ( pt, _) _ _ _ _ _) gs gOver timers) = pt
+getPlayerDestination (Board ts ps cs l s dB uB (Player _ (pt, _) _ _ _ _ _) gs gOver timers) = pt
 
 -- generate tracks to a point. essentially, queue up a series of movements in the direction of a point
 genTracks :: Float -> Direction -> Point -> Point -> [Track]
